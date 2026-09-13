@@ -1,0 +1,35 @@
+.landing-hero__title,
+.landing-hero__tagline {
+  max-width: var(--content-max-reading);
+}
+
+.landing-hero__tagline {
+  color: var(--color-ink-muted-80);
+}
+
+/* 히어로 이미지는 타일 좌우 패딩을 상쇄해 풀블리드로 놓는다. */
+.landing-hero__media {
+  width: calc(100% + var(--spacing-lg) * 2);
+  margin-top: var(--spacing-xxl);
+  margin-inline: calc(var(--spacing-lg) * -1);
+}
+
+.landing-tile__tagline {
+  max-width: 720px;
+}
+
+.landing-tile__media {
+  width: 100%;
+  max-width: 880px;
+  margin-top: var(--spacing-xl);
+}
+
+.landing-note {
+  color: var(--color-ink-muted-80);
+}
+
+@media (max-width: 735px) {
+  .landing-hero__media {
+    margin-top: var(--spacing-xl);
+  }
+}

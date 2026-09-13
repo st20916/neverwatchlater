@@ -1,0 +1,86 @@
+.video-card {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: var(--spacing-lg);
+  align-items: start;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+/* 안볼래요 성공 시 페이드아웃 후 목록에서 제거된다. */
+.video-card--removing {
+  opacity: 0;
+  transform: translateX(var(--spacing-xl));
+}
+
+.video-card__media {
+  width: 100%;
+}
+
+.video-card__content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.video-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+}
+
+.video-card__title {
+  color: var(--color-ink);
+}
+
+.video-card__channel {
+  color: var(--color-ink-muted-48);
+}
+
+.video-card__summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xxs);
+  margin-top: var(--spacing-xs);
+}
+
+.video-card__summary-line {
+  color: var(--color-ink-muted-80);
+  padding-left: var(--spacing-md);
+  position: relative;
+}
+
+.video-card__summary-line::before {
+  content: '·';
+  position: absolute;
+  left: var(--spacing-xs);
+}
+
+.video-card__summary-missing {
+  margin-top: var(--spacing-xs);
+  color: var(--color-ink-muted-48);
+}
+
+.video-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+  margin-top: var(--spacing-sm);
+}
+
+@media (max-width: 833px) {
+  .video-card {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .video-card__actions > * {
+    flex: 1 1 calc(50% - var(--spacing-xs));
+  }
+}
+
+@media (max-width: 419px) {
+  .video-card__actions > * {
+    flex: 1 1 100%;
+  }
+}

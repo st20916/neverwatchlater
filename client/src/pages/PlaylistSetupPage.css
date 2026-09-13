@@ -1,0 +1,54 @@
+.playlist-setup__title {
+  margin-top: var(--spacing-xl);
+}
+
+.playlist-setup__description {
+  margin-top: var(--spacing-sm);
+  color: var(--color-ink-muted-80);
+}
+
+.playlist-setup__steps {
+  margin: var(--spacing-lg) 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.playlist-setup__step {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+}
+
+.playlist-setup__step-label {
+  color: var(--color-ink);
+}
+
+.playlist-setup__inline {
+  margin-top: var(--spacing-md);
+  color: var(--color-ink-muted-48);
+}
+
+.playlist-setup__result {
+  margin-top: var(--spacing-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+}
+
+.playlist-setup__error,
+.playlist-setup__success {
+  color: var(--color-ink-muted-80);
+}
+
+@media (max-width: 640px) {
+  .playlist-setup__step {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-xs);
+  }
+}

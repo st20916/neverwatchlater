@@ -1,0 +1,41 @@
+.media-placeholder {
+  width: 100%;
+  display: grid;
+  place-items: center;
+  padding: var(--spacing-lg);
+  background: var(--color-surface-chip-translucent);
+}
+
+.media-placeholder--ultrawide {
+  aspect-ratio: 21 / 9;
+}
+
+.media-placeholder--wide {
+  aspect-ratio: 16 / 9;
+}
+
+.media-placeholder--square {
+  aspect-ratio: 1 / 1;
+}
+
+.media-placeholder--radius-none {
+  border-radius: var(--rounded-none);
+}
+
+.media-placeholder--radius-sm {
+  border-radius: var(--rounded-sm);
+}
+
+.media-placeholder--radius-lg {
+  border-radius: var(--rounded-lg);
+}
+
+/* 시스템의 유일한 그림자는 제품 이미지에만 허용된다. */
+.media-placeholder--elevated {
+  box-shadow: var(--shadow-product);
+}
+
+.media-placeholder__label {
+  color: var(--color-ink-muted-48);
+  text-align: center;
+}

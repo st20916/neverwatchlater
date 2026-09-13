@@ -1,0 +1,15 @@
+.state-preview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.state-preview__label {
+  color: var(--color-ink-muted-48);
+}
+
+.state-preview__options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+}
