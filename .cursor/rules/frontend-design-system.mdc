@@ -1,0 +1,27 @@
+---
+description: 프론트엔드 디자인/스타일 작업 시 client/docs/design.md의 디자인 시스템을 반드시 참조하도록 강제하는 규칙
+globs: client/src/**/*.jsx,client/src/**/*.js,client/src/**/*.css
+alwaysApply: false
+---
+
+# 프론트엔드 디자인 시스템 참조 규칙
+
+컴포넌트, 페이지, 스타일(CSS) 등 프론트엔드 디자인/UI를 작성하거나 수정할 때는
+**항상 [`client/docs/design.md`](../../client/docs/design.md)를 먼저 읽고 그 내용을 기준으로 구현**해야 한다.
+
+## 적용 방법
+
+1. UI/스타일 관련 작업을 시작하기 전에 `client/docs/design.md`를 읽어 색상, 타이포그래피,
+   spacing, radius, elevation, 컴포넌트 스펙, 반응형 breakpoint 등을 확인한다.
+2. `design.md`에 정의된 토큰(`{colors.*}`, `{typography.*}`, `{spacing.*}`, `{rounded.*}`,
+   `{component.*}` 등)에 대응하는 값을 사용한다. 임의로 새로운 색상, 폰트 크기, radius,
+   shadow 값을 만들어내지 않는다.
+3. `design.md`의 "Do's and Don'ts", "Iteration Guide" 섹션에 명시된 제약(예: 단일 accent
+   컬러만 사용, 카드/버튼에 shadow 금지, gradient 금지, body는 항상 17px/400 등)을 그대로 따른다.
+4. 새로운 컴포넌트가 필요하면 `design.md`의 기존 컴포넌트 스펙과 최대한 유사한 패턴(버튼
+   grammar, radius 체계, spacing 리듬)을 재사용하고, 근거 없이 벗어나지 않는다.
+5. `design.md`에 명시되지 않은 케이스(예: 폼 에러 상태, 다크모드 유틸리티 카드 등 "Known Gaps"
+   섹션에 언급된 항목)를 구현해야 한다면, `design.md`의 다른 규칙들과의 일관성을 우선 고려해
+   판단하고, 판단이 어려우면 사용자에게 확인한다.
+6. `design.md` 자체를 수정해야 하는 상황(디자인 시스템 변경)이 아니라면, 이 문서는 참조만
+   하고 임의로 고쳐 쓰지 않는다.

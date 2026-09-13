@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "hooks": {
+    "preToolUse": [
+      {
+        "command": "node .cursor/hooks/block-secrets.js",
+        "matcher": "Read|Write|StrReplace|EditNotebook",
+        "failClosed": false
+      },
+      {
+        "command": "node .cursor/hooks/block-lockfile-edit.js",
+        "matcher": "Write|StrReplace",
+        "failClosed": false
+      }
+    ],
+    "beforeReadFile": [
+      {
+        "command": "node .cursor/hooks/block-secrets.js",
+        "failClosed": false
+      }
+    ]
+  }
+}

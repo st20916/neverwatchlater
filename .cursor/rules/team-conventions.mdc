@@ -1,0 +1,34 @@
+---
+description: 팀 협업 규칙과 코딩 컨벤션(Git 브랜치/커밋 규칙, client/server 코딩 스타일, API 설계 규칙 등)을 정의한 CONVENTIONS.md를 항상 참조하도록 강제하는 규칙
+globs: client/src/**/*.{js,jsx},server/src/**/*.js
+alwaysApply: false
+---
+
+# 팀 협업 컨벤션 참조 규칙
+
+`client` 또는 `server`의 코드를 작성/수정하거나, 커밋/PR을 만들 때는
+**항상 [`CONVENTIONS.md`](../../CONVENTIONS.md)를 먼저 읽고 그 내용을 기준으로 작업**해야 한다.
+
+## 적용 방법
+
+1. 코드를 작성하기 전에 `CONVENTIONS.md`의 네이밍 규칙(파일명/변수명), import 순서,
+   폴더 구조(routes → controllers → services), 응답/에러 포맷 규칙을 확인한다.
+2. 새 파일을 추가할 때는 `CONVENTIONS.md`에 정의된 파일명 패턴
+   (`도메인.route.js`, `도메인.controller.js`, React 컴포넌트는 `PascalCase.jsx` 등)을 따른다.
+3. server 코드에서 에러가 발생하면 `res`를 직접 다루지 않고 `next(error)`로 넘겨
+   `middlewares/errorHandler.js`가 처리하도록 한다.
+4. client 코드에서 서버 API를 호출할 때는 컴포넌트 안에서 직접 `fetch`하지 않고
+   `src/api` 모듈로 분리한다. 프론트엔드 디자인/스타일은
+   [`client/docs/design.md`](../../client/docs/design.md)를 함께 따른다
+   (`.cursor/rules/frontend-design-system.mdc` 참고).
+5. 커밋 메시지를 작성할 때는 `CONVENTIONS.md`의 Conventional Commits 형식
+   (`type(scope): subject`)을 따른다.
+6. 코드를 수정한 뒤에는 `CONVENTIONS.md` 6절(린트 & 테스트 규칙)에 따라 해당 워크스페이스에서
+   `npm run lint`와 `npm run test`를 실행해 통과하는지 확인한다
+   (`client`는 oxlint + Vitest, `server`는 oxlint + `node --test`).
+7. 새 API 라우트/컨트롤러나 로직이 있는 React 컴포넌트를 추가하면, 같은 폴더에
+   `대상파일명.test.js(x)` 형식으로 테스트를 함께 작성한다.
+8. `CONVENTIONS.md`에 명시되지 않은 새로운 패턴이 필요하면 기존 규칙과의 일관성을 우선
+   고려해 판단하고, 판단이 어려우면 사용자에게 확인한다.
+9. `CONVENTIONS.md` 자체를 수정해야 하는 상황(팀 규칙 변경)이 아니라면, 이 문서는 참조만
+   하고 임의로 고쳐 쓰지 않는다.
