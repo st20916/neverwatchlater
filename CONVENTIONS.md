@@ -26,13 +26,17 @@ project/
 │   └── .oxlintrc.json     # 린트 설정
 │
 ├── server/                 # Node.js + Express 백엔드
+│   ├── data/               # 파일 기반 저장소 데이터 (gitignore, .gitkeep으로 폴더만 유지)
 │   └── src/
 │       ├── config/         # 환경변수 등 설정
 │       ├── routes/         # 라우터 (URL ↔ 컨트롤러 연결)
 │       ├── controllers/    # 요청/응답 처리 로직
 │       ├── middlewares/    # 공통 미들웨어 (에러 처리, 인증 등)
-│       ├── services/       # 비즈니스 로직 (필요 시 생성)
-│       ├── models/         # DB 모델/스키마 (필요 시 생성)
+│       ├── services/       # 비즈니스 로직 (예: services/playlist.service.js)
+│       ├── providers/      # 외부 API 연동 모듈 (예: providers/google-oauth.js, providers/youtube.js)
+│       ├── store/          # 데이터 저장소 접근 모듈 (예: store/userStore.js — 현재는 파일 기반,
+│       │                   #   추후 DB로 교체 시 이 계층만 바꾸도록 분리)
+│       ├── models/         # DB 모델/스키마 (실제 DB 도입 시 생성)
 │       ├── app.js          # express 앱 설정
 │       └── server.js       # 앱 실행 진입점
 │
@@ -158,12 +162,20 @@ refactor(server): 에러 핸들러 공통화
 ### 5.1 계층 구조 (관심사 분리)
 
 ```
-routes → controllers → services(→ models)
+routes → controllers → services → (providers | store | models)
 ```
 
 - **routes**: URL과 컨트롤러를 연결만 합니다. 로직을 넣지 않습니다.
 - **controllers**: `req`/`res`를 다루고, 실제 비즈니스 로직은 `services`에 위임합니다
   (로직이 단순할 때는 controller에 바로 작성해도 되지만, 복잡해지면 service로 분리).
+- **services**: 비즈니스 로직. 외부 API(`providers`)나 저장소(`store`/`models`)를 조합해
+  하나의 유스케이스를 완성합니다. 테스트하기 쉽도록 의존성을 매개변수로 주입받을 수 있게
+  작성하는 것을 권장합니다(`services/playlist.service.js` 참고).
+- **providers**: 외부 API(Google OAuth, YouTube Data API 등) 연동을 캡슐화합니다. 특정
+  외부 서비스와 관련된 인증/요청 로직은 반드시 해당 provider 모듈 한 곳에만 둡니다.
+- **store**: 데이터 저장소 접근을 캡슐화합니다. 지금은 파일 기반이지만, 추후 DB로 교체할 때
+  이 계층의 구현만 바꾸면 되도록 `services`는 `store`의 내부 구현(파일/DB)을 알지 못하게
+  합니다.
 - **middlewares**: 인증, 유효성 검사, 에러 처리 등 여러 라우트에서 공통으로 쓰는 로직.
 - **config**: 환경변수, DB 연결 등 설정 값.
 

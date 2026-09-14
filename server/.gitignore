@@ -13,6 +13,10 @@ dist-ssr
 coverage
 *.local
 
+# 파일 기반 사용자 데이터 (server/src/store/userStore.js). 실 사용자 데이터를 커밋하지 않는다.
+/data/*
+!/data/.gitkeep
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
