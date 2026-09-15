@@ -1,6 +1,6 @@
-/* TODO(테스트용): OAuth 리다이렉트 결과 확인용 임시 스타일입니다. 테스트가 끝나면
-   OAuthSuccess.jsx, OAuthError.jsx와 함께 삭제해주세요. 디자인 시스템(client/docs/design.md)을
-   따르지 않는 최소한의 스타일입니다. */
+/* OAuthError.jsx가 사용하는 결과 화면 스타일.
+   TODO(디자인 정합화 필요): 아직 디자인 시스템(client/docs/design.md)을 따르지 않는
+   최소한의 스타일이다. 다른 페이지들과 톤을 맞춰 디자인 시스템에 맞게 다듬어야 한다. */
 
 .oauth-test-page {
   display: flex;
@@ -14,40 +14,13 @@
   font-family: system-ui, sans-serif;
 }
 
-.oauth-test-page--success h1 {
-  color: #1a7f37;
-}
-
 .oauth-test-page--error h1 {
   color: #d1242f;
-}
-
-.oauth-test-card {
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  background: #fafafa;
-  padding: 16px 24px;
-  text-align: left;
-}
-
-.oauth-test-card h2 {
-  margin-top: 0;
-  font-size: 16px;
-}
-
-.oauth-test-card button {
-  margin-top: 8px;
-  padding: 6px 12px;
-  cursor: pointer;
 }
 
 .oauth-test-reason {
   color: #888;
   font-family: monospace;
-}
-
-.oauth-test-warning {
-  color: #d1242f;
 }
 
 .oauth-test-page a {

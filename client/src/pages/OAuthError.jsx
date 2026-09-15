@@ -1,5 +1,6 @@
-// TODO(테스트용): Google OAuth 콜백 실패(`/oauth/error`) 확인용 임시 테스트 화면입니다.
-// 테스트가 끝나면 라우트(main.jsx)와 함께 삭제해주세요.
+// Google OAuth 콜백 실패(`/oauth/error`) 결과 화면.
+// server/src/controllers/auth.controller.js의 handleGoogleCallback이 로그인 실패 시
+// reason 쿼리 파라미터와 함께 이 경로로 리다이렉트한다.
 import { useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 
