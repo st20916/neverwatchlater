@@ -1,4 +1,4 @@
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom';
 
 import GlobalNav from './components/GlobalNav.jsx';
 import SiteFooter from './components/SiteFooter.jsx';
@@ -14,10 +14,22 @@ import OAuthSuccess from './pages/OAuthSuccess.jsx';
 
 import './App.css';
 
-const App = () => (
-  <BrowserRouter>
-    <div className="app-shell">
-      <GlobalNav />
+const CHROME_PATHS = [
+  '/auth/loading',
+  '/auth/failed',
+  '/playlist-setup',
+  '/videos',
+  '/oauth/success',
+  '/oauth/error',
+];
+
+const AppLayout = () => {
+  const { pathname } = useLocation();
+  const showChrome = CHROME_PATHS.includes(pathname);
+
+  return (
+    <div className={showChrome ? 'app-shell' : 'app-shell app-shell--guide'}>
+      {showChrome ? <GlobalNav /> : null}
 
       <main className="app-shell__main">
         <Routes>
@@ -32,8 +44,14 @@ const App = () => (
         </Routes>
       </main>
 
-      <SiteFooter />
+      {showChrome ? <SiteFooter /> : null}
     </div>
+  );
+};
+
+const App = () => (
+  <BrowserRouter>
+    <AppLayout />
   </BrowserRouter>
 );
 

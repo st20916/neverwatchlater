@@ -7,3 +7,7 @@
 .app-shell__main {
   flex: 1 1 auto;
 }
+
+.app-shell--guide {
+  background: #e8e8e1;
+}
