@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
-import { fetchCurrentUser } from '../api/authApi';
+import { fetchCurrentUser, getGoogleLoginUrl } from '../api/authApi';
 import { setupDedicatedPlaylist } from '../api/playlistApi';
+import ConfirmDialog from '../components/ConfirmDialog.jsx';
 import Toast from '../components/Toast.jsx';
 
 import './PlaylistSetupPage.css';
@@ -27,10 +28,15 @@ const STATUS_LABEL = {
  * 확보한다(POST /api/playlists/setup).
  */
 const PlaylistSetupPage = () => {
+  const navigate = useNavigate();
+
   // 'progress' | 'success' | 'failed'
   const [setupState, setSetupState] = useState('progress');
   // 실패가 발생한 단계. 재시도 시 어디서부터 다시 시작할지 판단하는 데 사용한다.
-  const [failedStep, setFailedStep] = useState(null); // 'account' | 'playlist' | null
+  // 'insufficient_scope'는 로그인은 되어 있지만 유튜브 권한 동의가 없는 경우
+  // (server가 reason: 'insufficient_scope'로 응답, docs/product-specs/auth.md 1절
+  // 마이그레이션 안내 참고) — 재시도로는 해결되지 않고 재로그인(재동의)이 필요하다.
+  const [failedStep, setFailedStep] = useState(null); // 'account' | 'playlist' | 'insufficient_scope' | null
   const [user, setUser] = useState(null);
   const [playlist, setPlaylist] = useState(null);
   const [errorMessage, setErrorMessage] = useState(null);
@@ -49,6 +55,15 @@ const PlaylistSetupPage = () => {
       })
       .catch((err) => {
         setErrorMessage(err.message);
+
+        if (err.reason === 'insufficient_scope') {
+          // 유튜브 권한 동의가 없는 세션 — 재시도가 아니라 재로그인이 필요하다.
+          setFailedStep('insufficient_scope');
+          setSetupState('failed');
+          setToast({ tone: 'error', message: err.message });
+          return;
+        }
+
         setFailedStep('playlist');
         setSetupState('failed');
         setToast({
@@ -89,6 +104,22 @@ const PlaylistSetupPage = () => {
     runPlaylistSetup();
   };
 
+  // 로그인이 안 되어 있거나(account) 유튜브 권한 동의가 없는 경우(insufficient_scope)에는
+  // 재시도 버튼 대신 로그인 여부를 묻는 확인 다이얼로그를 보여준다. 두 경우 모두 재시도만으로는
+  // 해결되지 않고 (재)로그인이 필요하기 때문이다.
+  const showLoginConfirm =
+    setupState === 'failed' &&
+    (failedStep === 'account' || failedStep === 'insufficient_scope');
+
+  const handleConfirmLogin = () => {
+    // Google 로그인은 서버(GET /api/auth/google)로의 전체 페이지 이동이 필요하다.
+    window.location.href = getGoogleLoginUrl();
+  };
+
+  const handleCancelLogin = () => {
+    navigate('/');
+  };
+
   const stepStatus = {
     account: user ? 'done' : failedStep === 'account' ? 'failed' : 'current',
     playlist:
@@ -96,7 +127,7 @@ const PlaylistSetupPage = () => {
         ? 'done'
         : !user
           ? 'waiting'
-          : failedStep === 'playlist'
+          : failedStep === 'playlist' || failedStep === 'insufficient_scope'
             ? 'failed'
             : 'current',
     target: setupState === 'success' ? 'done' : 'waiting',
@@ -144,7 +175,7 @@ const PlaylistSetupPage = () => {
           </p>
         ) : null}
 
-        {setupState === 'failed' ? (
+        {setupState === 'failed' && failedStep === 'playlist' ? (
           <div className="playlist-setup__result">
             <p className="type-body playlist-setup__error">
               {errorMessage ||
@@ -174,6 +205,17 @@ const PlaylistSetupPage = () => {
           message={toast.message}
           tone={toast.tone}
           onClose={() => setToast(null)}
+        />
+      ) : null}
+
+      {showLoginConfirm ? (
+        <ConfirmDialog
+          title="로그인 필요"
+          description="로그인이 필요합니다. 로그인 하시겠습니까?"
+          confirmLabel="예"
+          cancelLabel="아니오"
+          onConfirm={handleConfirmLogin}
+          onCancel={handleCancelLogin}
         />
       ) : null}
     </section>

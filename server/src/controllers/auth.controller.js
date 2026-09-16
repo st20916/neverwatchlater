@@ -77,6 +77,10 @@ export const handleGoogleCallback = async (req, res) => {
       accessToken: tokens.access_token,
       refreshToken: tokens.refresh_token,
       expiryDate: tokens.expiry_date,
+      // Google 토큰 응답의 공백 구분 scope 문자열. 세션 scope 검증(assertYoutubeScope)에
+      // 사용한다 — 예전에 로그인해 새 scope 동의가 없는 세션을 구분하기 위함
+      // (docs/product-specs/auth.md 1절 마이그레이션 안내).
+      scope: tokens.scope,
     };
 
     redirectToClient(res, '/playlist-setup');

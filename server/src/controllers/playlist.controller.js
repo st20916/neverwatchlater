@@ -1,4 +1,4 @@
-import { getValidAccessToken } from '../services/googleSession.service.js';
+import { assertYoutubeScope, getValidAccessToken } from '../services/googleSession.service.js';
 import { ensureDedicatedPlaylist, getPlaylistStatus } from '../services/playlist.service.js';
 
 /**
@@ -9,6 +9,11 @@ import { ensureDedicatedPlaylist, getPlaylistStatus } from '../services/playlist
 export const setupPlaylist = async (req, res, next) => {
   try {
     const googleId = req.session.user.googleId;
+
+    // YouTube scope 동의가 없는 세션(예: scope 추가 이전에 로그인한 세션)이면
+    // YouTube API 호출 전에 걸러서 명확한 재로그인 안내로 응답한다.
+    assertYoutubeScope(req);
+
     const accessToken = await getValidAccessToken(req);
 
     const result = await ensureDedicatedPlaylist({ googleId, accessToken });
