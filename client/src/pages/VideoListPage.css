@@ -16,6 +16,11 @@
   gap: var(--spacing-sm);
 }
 
+.video-list__synced-at {
+  color: var(--color-ink-muted-48);
+  white-space: nowrap;
+}
+
 .video-list__previews {
   display: flex;
   flex-wrap: wrap;

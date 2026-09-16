@@ -1,8 +1,33 @@
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { fetchVideos, syncVideosNow } from '../api/videoApi.js';
 import VideoListPage from './VideoListPage.jsx';
+
+vi.mock('../api/videoApi.js', () => ({
+  fetchVideos: vi.fn(),
+  syncVideosNow: vi.fn(),
+}));
+
+const daysAgo = (days) => {
+  const date = new Date();
+  date.setDate(date.getDate() - days);
+  return date.toISOString();
+};
+
+const makeVideo = (overrides = {}) => ({
+  videoId: 'v1',
+  title: '영상 제목',
+  channelName: '채널',
+  savedAt: daysAgo(1),
+  isArchived: false,
+  durationSeconds: 120,
+  thumbnailUrl: '',
+  summaryStatus: 'done',
+  summary: ['a', 'b', 'c'],
+  ...overrides,
+});
 
 const renderPage = () =>
   render(
@@ -11,99 +36,143 @@ const renderPage = () =>
     </MemoryRouter>,
   );
 
-const flushActions = async () => {
-  await act(async () => {
-    vi.advanceTimersByTime(1000);
-  });
-};
-
 describe('VideoListPage', () => {
   beforeEach(() => {
-    vi.useFakeTimers();
+    fetchVideos.mockReset();
+    syncVideosNow.mockReset();
   });
 
   afterEach(() => {
-    vi.useRealTimers();
+    vi.restoreAllMocks();
   });
 
-  it('오래 방치된 영상을 먼저 표시한다', () => {
-    renderPage();
-
-    const titles = screen
-      .getAllByRole('heading', { level: 3 })
-      .map((heading) => heading.textContent);
-
-    expect(titles[0]).toBe('주말 30분으로 끝내는 리액트 상태관리 정리');
-  });
-
-  it('안볼래요는 확인 대화상자를 거쳐 카드를 제거한다', async () => {
-    renderPage();
-
-    fireEvent.click(screen.getAllByRole('button', { name: '🗑 안볼래요' })[0]);
-
-    const dialog = screen.getByRole('dialog', {
-      name: '이 영상을 삭제할까요?',
+  it('오래 방치된 영상을 먼저 표시한다', async () => {
+    fetchVideos.mockResolvedValue({
+      videos: [
+        makeVideo({ videoId: 'recent', title: '최근 저장', savedAt: daysAgo(1) }),
+        makeVideo({ videoId: 'old', title: '오래된 저장', savedAt: daysAgo(20) }),
+      ],
+      lastSyncedAt: '2026-09-16T00:00:00.000Z',
+      synced: true,
+      syncFailed: false,
     });
-    expect(dialog).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: '삭제' }));
-    await flushActions();
-
-    expect(
-      screen.queryByText('주말 30분으로 끝내는 리액트 상태관리 정리'),
-    ).not.toBeInTheDocument();
-    expect(screen.getByText('청소 완료 1개')).toBeInTheDocument();
-  });
-
-  it('확인 대화상자를 취소하면 카드를 유지한다', () => {
     renderPage();
 
-    fireEvent.click(screen.getAllByRole('button', { name: '🗑 안볼래요' })[0]);
-    fireEvent.click(screen.getByRole('button', { name: '취소' }));
-
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-    expect(
-      screen.getByText('주말 30분으로 끝내는 리액트 상태관리 정리'),
-    ).toBeInTheDocument();
+    const titles = await screen.findAllByRole('heading', { level: 3 });
+    expect(titles[0].textContent).toBe('오래된 저장');
   });
 
-  it('나중에를 선택하면 저장 일자를 초기화해 방치 경고를 없앤다', async () => {
+  it('로그인하지 않았으면 로그인 안내를 표시한다', async () => {
+    const error = new Error('로그인이 필요합니다.');
+    error.status = 401;
+    fetchVideos.mockRejectedValue(error);
+
     renderPage();
 
-    fireEvent.click(screen.getAllByRole('button', { name: '나중에' })[0]);
-    await flushActions();
-
-    expect(screen.getByText('D-7 · 저장 후 0일')).toBeInTheDocument();
-    expect(screen.getByText('저장 일자를 초기화했습니다.')).toBeInTheDocument();
+    expect(await screen.findByText('로그인이 필요합니다')).toBeInTheDocument();
   });
 
-  it('정리 요청이 실패하면 카드를 유지하고 재시도 안내를 표시한다', async () => {
+  it('전용 재생목록이 없으면 설정 안내를 표시한다', async () => {
+    const error = new Error('전용 재생목록이 설정되지 않았습니다.');
+    error.status = 409;
+    fetchVideos.mockRejectedValue(error);
+
     renderPage();
 
-    fireEvent.click(screen.getByRole('button', { name: '정리 요청 실패' }));
-    fireEvent.click(screen.getAllByRole('button', { name: '나중에' })[0]);
-    await flushActions();
-
     expect(
-      screen.getByText(
-        '유튜브 서버와 통신 중 오류가 발생했습니다. 다시 시도해 주세요.',
-      ),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText('주말 30분으로 끝내는 리액트 상태관리 정리'),
+      await screen.findByText('전용 재생목록이 아직 없습니다'),
     ).toBeInTheDocument();
   });
 
-  it('동기화 실패 상태에서 재시도 안내를 표시한다', () => {
+  it('동기화가 실패한 상태로 응답하면 재시도 안내를 표시한다', async () => {
+    fetchVideos.mockResolvedValue({
+      videos: [makeVideo()],
+      lastSyncedAt: '2026-09-16T00:00:00.000Z',
+      synced: false,
+      syncFailed: true,
+    });
+
     renderPage();
 
-    fireEvent.click(screen.getByRole('button', { name: '동기화 실패' }));
+    expect(
+      await screen.findByText('유튜브와 통신하지 못해 동기화가 중단되었습니다'),
+    ).toBeInTheDocument();
+  });
+
+  it('지금 동기화 버튼을 누르면 동기화 API를 호출하고 목록을 갱신한다', async () => {
+    fetchVideos.mockResolvedValue({
+      videos: [makeVideo({ title: '이전 목록' })],
+      lastSyncedAt: '2026-09-16T00:00:00.000Z',
+      synced: false,
+      syncFailed: false,
+    });
+    syncVideosNow.mockResolvedValue({
+      videos: [makeVideo({ title: '갱신된 목록' })],
+      lastSyncedAt: '2026-09-16T01:00:00.000Z',
+      synced: true,
+      syncFailed: false,
+    });
+
+    renderPage();
+    await screen.findByText('이전 목록');
+
+    fireEvent.click(screen.getByRole('button', { name: '지금 동기화' }));
+
+    await screen.findByText('갱신된 목록');
+    expect(syncVideosNow).toHaveBeenCalledTimes(1);
+    expect(await screen.findByText('동기화를 완료했습니다.')).toBeInTheDocument();
+  });
+
+  it('나중에 버튼을 누르면 아직 연결되지 않았다는 안내를 표시한다', async () => {
+    fetchVideos.mockResolvedValue({
+      videos: [makeVideo()],
+      lastSyncedAt: null,
+      synced: true,
+      syncFailed: false,
+    });
+
+    renderPage();
+    await screen.findByText('영상 제목');
+
+    fireEvent.click(screen.getByRole('button', { name: '나중에' }));
 
     expect(
-      screen.getByText('유튜브와 통신하지 못해 동기화가 중단되었습니다'),
+      await screen.findByText('이 기능은 아직 연결되지 않았습니다. 곧 제공될 예정입니다.'),
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: '동기화 재시도' }),
-    ).toBeInTheDocument();
+  });
+
+  it('바로 보기 버튼을 누르면 유튜브 영상을 새 탭으로 연다', async () => {
+    fetchVideos.mockResolvedValue({
+      videos: [makeVideo({ videoId: 'abc123' })],
+      lastSyncedAt: null,
+      synced: true,
+      syncFailed: false,
+    });
+    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => {});
+
+    renderPage();
+    await screen.findByText('영상 제목');
+
+    fireEvent.click(screen.getByRole('button', { name: '▶ 바로 보기' }));
+
+    expect(openSpy).toHaveBeenCalledWith(
+      'https://www.youtube.com/watch?v=abc123',
+      '_blank',
+      'noopener,noreferrer',
+    );
+  });
+
+  it('영상이 없으면 빈 상태 안내를 표시한다', async () => {
+    fetchVideos.mockResolvedValue({
+      videos: [],
+      lastSyncedAt: null,
+      synced: true,
+      syncFailed: false,
+    });
+
+    renderPage();
+
+    expect(await screen.findByText('정리할 영상이 없습니다')).toBeInTheDocument();
   });
 });

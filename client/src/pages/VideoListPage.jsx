@@ -1,117 +1,169 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 
-import ConfirmDialog from '../components/ConfirmDialog.jsx';
-import StatePreview from '../components/StatePreview.jsx';
+import { fetchVideos, syncVideosNow } from '../api/videoApi.js';
 import StatusNotice from '../components/StatusNotice.jsx';
 import Toast from '../components/Toast.jsx';
 import VideoCard from '../components/VideoCard.jsx';
-import { MOCK_VIDEOS } from '../data/mockVideos.js';
 import { getElapsedDays } from '../utils/dday.js';
 
 import './VideoListPage.css';
 
-const SYNC_STATES = [
-  { value: 'synced', label: '동기화 완료' },
-  { value: 'syncing', label: '동기화 중' },
-  { value: 'failed', label: '동기화 실패' },
-];
-
-const API_STATES = [
-  { value: 'success', label: '정리 요청 성공' },
-  { value: 'failure', label: '정리 요청 실패' },
-];
-
-const ACTION_DELAY_MS = 500;
-
-const DELETE_ERROR_MESSAGE =
+const SYNC_ERROR_MESSAGE =
   '유튜브 서버와 통신 중 오류가 발생했습니다. 다시 시도해 주세요.';
+
+// 바로 보기를 제외한 나머지 액션(나중에/보관하기/안볼래요)은 PRD 4번(정리 액션) 파트에서
+// 실제 동작을 연결한다. 이 화면에서는 자리만 배치하고 안내 토스트만 띄운다.
+const PLACEHOLDER_TOAST = {
+  tone: 'success',
+  message: '이 기능은 아직 연결되지 않았습니다. 곧 제공될 예정입니다.',
+};
 
 const sortByNeglected = (videos) =>
   [...videos].sort(
     (a, b) => getElapsedDays(b.savedAt) - getElapsedDays(a.savedAt),
   );
 
+const formatSyncTime = (iso) => {
+  if (!iso) return null;
+  return new Date(iso).toLocaleString('ko-KR', {
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
+
 const VideoListPage = () => {
-  const [syncState, setSyncState] = useState('synced');
-  const [apiState, setApiState] = useState('success');
-  const [videos, setVideos] = useState(() => sortByNeglected(MOCK_VIDEOS));
-  const [pending, setPending] = useState(null);
-  const [removingId, setRemovingId] = useState(null);
-  const [confirmTarget, setConfirmTarget] = useState(null);
-  const [cleanedCount, setCleanedCount] = useState(0);
+  const [status, setStatus] = useState('loading'); // loading | ready | unauthenticated | noPlaylist | error
+  const [videos, setVideos] = useState([]);
+  const [lastSyncedAt, setLastSyncedAt] = useState(null);
+  const [syncFailed, setSyncFailed] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const [toast, setToast] = useState(null);
 
-  const runAction = (video, action, onSuccess) => {
-    setPending({ id: video.id, action });
-
-    setTimeout(() => {
-      setPending(null);
-
-      if (apiState === 'failure') {
-        setToast({ tone: 'error', message: DELETE_ERROR_MESSAGE });
-        return;
-      }
-
-      onSuccess();
-    }, ACTION_DELAY_MS);
+  const applyResult = (result) => {
+    setVideos(sortByNeglected(result.videos));
+    setLastSyncedAt(result.lastSyncedAt);
+    setSyncFailed(result.syncFailed);
   };
 
-  const removeVideo = (video, successMessage) => {
-    setRemovingId(video.id);
+  // 로딩 상태는 useState 초기값이 이미 담당하므로, 여기서는 setState를 먼저 호출하지 않고
+  // 곧바로 요청부터 시작한다(재시도 시의 로딩 표시는 retryLoad에서 별도로 처리).
+  const load = useCallback(() => {
+    fetchVideos()
+      .then((result) => {
+        applyResult(result);
+        setStatus('ready');
+      })
+      .catch((err) => {
+        if (err.status === 401) {
+          setStatus('unauthenticated');
+        } else if (err.status === 409) {
+          setStatus('noPlaylist');
+        } else {
+          setStatus('error');
+        }
+      });
+  }, []);
 
-    setTimeout(() => {
-      setVideos((current) => current.filter((item) => item.id !== video.id));
-      setRemovingId(null);
-      setCleanedCount((count) => count + 1);
-      setToast({ tone: 'success', message: successMessage });
-    }, 300);
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const retryLoad = () => {
+    setStatus('loading');
+    load();
+  };
+
+  const handleSyncNow = async () => {
+    setSyncing(true);
+    try {
+      const result = await syncVideosNow();
+      applyResult(result);
+      setToast(
+        result.syncFailed
+          ? { tone: 'error', message: SYNC_ERROR_MESSAGE }
+          : { tone: 'success', message: '동기화를 완료했습니다.' },
+      );
+    } catch {
+      setToast({ tone: 'error', message: SYNC_ERROR_MESSAGE });
+    } finally {
+      setSyncing(false);
+    }
   };
 
   const handleWatch = (video) => {
-    setToast({
-      tone: 'success',
-      message: '유튜브 영상을 새 탭에서 열었습니다. (프로토타입)',
-    });
+    window.open(`https://www.youtube.com/watch?v=${video.videoId}`, '_blank', 'noopener,noreferrer');
+  };
 
-    runAction(video, 'watch', () =>
-      removeVideo(video, '바로 보기로 영상을 정리했습니다.'),
+  const showPlaceholder = () => setToast(PLACEHOLDER_TOAST);
+
+  if (status === 'loading') {
+    return (
+      <section className="tile tile--parchment video-list">
+        <div className="tile__inner">
+          <StatusNotice
+            label="불러오는 중"
+            title="영상 목록을 불러오고 있습니다"
+            description="전용 재생목록을 확인하고 있어요. 잠시만 기다려 주세요."
+          />
+        </div>
+      </section>
     );
-  };
+  }
 
-  const handleLater = (video) => {
-    runAction(video, 'later', () => {
-      setVideos((current) =>
-        sortByNeglected(
-          current.map((item) =>
-            item.id === video.id
-              ? { ...item, savedAt: new Date().toISOString() }
-              : item,
-          ),
-        ),
-      );
-      setToast({ tone: 'success', message: '저장 일자를 초기화했습니다.' });
-    });
-  };
-
-  const handleArchive = (video) => {
-    runAction(video, 'archive', () => {
-      setVideos((current) =>
-        current.map((item) =>
-          item.id === video.id ? { ...item, isArchived: true } : item,
-        ),
-      );
-      setToast({ tone: 'success', message: '영상을 보관했습니다.' });
-    });
-  };
-
-  const handleDeleteConfirmed = () => {
-    const video = confirmTarget;
-    setConfirmTarget(null);
-
-    runAction(video, 'delete', () =>
-      removeVideo(video, '안볼래요로 영상을 삭제했습니다.'),
+  if (status === 'unauthenticated') {
+    return (
+      <section className="tile tile--parchment video-list">
+        <div className="tile__inner">
+          <div className="video-list__empty utility-card">
+            <p className="type-body-strong">로그인이 필요합니다</p>
+            <p className="type-caption video-list__empty-description">
+              정리 목록을 보려면 먼저 Google 계정으로 로그인해 주세요.
+            </p>
+            <Link to="/" className="btn-primary">
+              로그인하러 가기
+            </Link>
+          </div>
+        </div>
+      </section>
     );
-  };
+  }
+
+  if (status === 'noPlaylist') {
+    return (
+      <section className="tile tile--parchment video-list">
+        <div className="tile__inner">
+          <div className="video-list__empty utility-card">
+            <p className="type-body-strong">전용 재생목록이 아직 없습니다</p>
+            <p className="type-caption video-list__empty-description">
+              ‘Neverwatchlater’ 재생목록을 먼저 설정해야 영상을 동기화할 수 있어요.
+            </p>
+            <Link to="/playlist-setup" className="btn-primary">
+              재생목록 설정하러 가기
+            </Link>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <section className="tile tile--parchment video-list">
+        <div className="tile__inner">
+          <StatusNotice
+            label="불러오기 실패"
+            title="영상 목록을 불러오지 못했습니다"
+            description="네트워크 상태를 확인한 뒤 다시 시도해 주세요."
+            actionLabel="다시 시도"
+            onAction={retryLoad}
+          />
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="tile tile--parchment video-list">
@@ -125,42 +177,29 @@ const VideoListPage = () => {
             </p>
           </div>
           <div className="video-list__meta">
-            <span className="badge badge--outline">
-              청소 완료 {cleanedCount}개
-            </span>
+            {lastSyncedAt ? (
+              <span className="type-caption video-list__synced-at">
+                마지막 동기화: {formatSyncTime(lastSyncedAt)}
+              </span>
+            ) : null}
+            <button
+              type="button"
+              className="btn-pearl-capsule"
+              disabled={syncing}
+              onClick={handleSyncNow}
+            >
+              {syncing ? '동기화 중…' : '지금 동기화'}
+            </button>
           </div>
         </header>
 
-        <div className="video-list__previews">
-          <StatePreview
-            label="동기화 상태"
-            options={SYNC_STATES}
-            value={syncState}
-            onChange={setSyncState}
-          />
-          <StatePreview
-            label="정리 액션 응답"
-            options={API_STATES}
-            value={apiState}
-            onChange={setApiState}
-          />
-        </div>
-
-        {syncState === 'syncing' ? (
-          <StatusNotice
-            label="동기화 중"
-            title="전용 재생목록을 동기화하고 있습니다"
-            description="최대 3일 주기로 자동 동기화되며, 완료되면 카드가 갱신됩니다."
-          />
-        ) : null}
-
-        {syncState === 'failed' ? (
+        {syncFailed ? (
           <StatusNotice
             label="동기화 실패"
             title="유튜브와 통신하지 못해 동기화가 중단되었습니다"
             description="기존 카드는 그대로 유지됩니다. 다음 주기에 다시 시도하거나 지금 재시도할 수 있습니다."
             actionLabel="동기화 재시도"
-            onAction={() => setSyncState('syncing')}
+            onAction={handleSyncNow}
           />
         ) : null}
 
@@ -175,33 +214,19 @@ const VideoListPage = () => {
         ) : (
           <ul className="video-list__items">
             {videos.map((video) => (
-              <li key={video.id}>
+              <li key={video.videoId}>
                 <VideoCard
                   video={video}
-                  pendingAction={
-                    pending?.id === video.id ? pending.action : null
-                  }
-                  isRemoving={removingId === video.id}
                   onWatch={handleWatch}
-                  onLater={handleLater}
-                  onArchive={handleArchive}
-                  onDelete={setConfirmTarget}
+                  onLater={showPlaceholder}
+                  onArchive={showPlaceholder}
+                  onDelete={showPlaceholder}
                 />
               </li>
             ))}
           </ul>
         )}
       </div>
-
-      {confirmTarget ? (
-        <ConfirmDialog
-          title="이 영상을 삭제할까요?"
-          description={`‘${confirmTarget.title}’을(를) 전용 재생목록과 서비스 목록에서 삭제합니다.`}
-          confirmLabel="삭제"
-          onConfirm={handleDeleteConfirmed}
-          onCancel={() => setConfirmTarget(null)}
-        />
-      ) : null}
 
       {toast ? (
         <Toast

@@ -10,11 +10,14 @@ const daysAgo = (days) => {
 };
 
 const baseVideo = {
-  id: 'v1',
+  videoId: 'v1',
   title: '테스트 영상',
   channelName: '테스트 채널',
   savedAt: daysAgo(10),
   isArchived: false,
+  durationSeconds: 754,
+  thumbnailUrl: '',
+  summaryStatus: 'done',
   summary: ['첫 줄 요약', '두 번째 줄 요약', '세 번째 줄 요약'],
 };
 
@@ -54,18 +57,47 @@ describe('VideoCard', () => {
     expect(screen.getByRole('button', { name: '보관하기' })).toBeDisabled();
   });
 
+  it('요약 완료 상태에서는 3줄 요약을 표시한다', () => {
+    renderCard(baseVideo);
+
+    expect(screen.getByText('첫 줄 요약')).toBeInTheDocument();
+    expect(screen.getByText('세 번째 줄 요약')).toBeInTheDocument();
+  });
+
+  it('요약 대기 상태에는 생성 중 안내를 표시한다', () => {
+    renderCard({ ...baseVideo, summaryStatus: 'pending', summary: null });
+
+    expect(screen.getByText('AI 요약을 생성하고 있습니다.')).toBeInTheDocument();
+  });
+
   it('자막이 없는 영상에는 요약 불가 안내를 표시한다', () => {
-    renderCard({ ...baseVideo, summary: null });
+    renderCard({ ...baseVideo, summaryStatus: 'unavailable', summary: null });
 
     expect(
-      screen.getByText('자막을 찾을 수 없어 AI 요약이 불가능한 영상입니다'),
+      screen.getByText('자막을 찾을 수 없어 AI 요약이 불가능한 영상입니다.'),
     ).toBeInTheDocument();
   });
 
-  it('썸네일 자리에 회색 플레이스홀더를 표시한다', () => {
+  it('요약 생성에 실패하면 재시도 안내를 표시한다', () => {
+    renderCard({ ...baseVideo, summaryStatus: 'failed', summary: null });
+
+    expect(
+      screen.getByText('요약 생성에 실패했습니다. 잠시 후 다시 시도합니다.'),
+    ).toBeInTheDocument();
+  });
+
+  it('썸네일 URL이 없으면 회색 플레이스홀더를 표시한다', () => {
     renderCard(baseVideo);
 
     expect(screen.getByRole('img', { name: '썸네일 없음' })).toBeInTheDocument();
+  });
+
+  it('썸네일 URL이 있으면 이미지를 표시하고 길이를 오버레이로 보여준다', () => {
+    renderCard({ ...baseVideo, thumbnailUrl: 'https://thumb.example/1.jpg' });
+
+    const image = screen.getByRole('img', { name: baseVideo.title });
+    expect(image).toHaveAttribute('src', 'https://thumb.example/1.jpg');
+    expect(screen.getByText('12:34')).toBeInTheDocument();
   });
 
   it('액션 버튼을 누르면 해당 핸들러를 호출한다', () => {

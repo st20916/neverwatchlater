@@ -14,6 +14,27 @@
 
 .video-card__media {
   width: 100%;
+  position: relative;
+}
+
+.video-card__thumbnail {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: var(--rounded-sm);
+  display: block;
+}
+
+.video-card__duration {
+  position: absolute;
+  right: var(--spacing-xs);
+  bottom: var(--spacing-xs);
+  padding: var(--spacing-xxs) var(--spacing-xs);
+  border-radius: var(--rounded-xs);
+  background: rgba(0, 0, 0, 0.75);
+  color: var(--color-body-on-dark);
+  font-size: 12px;
+  line-height: 1;
 }
 
 .video-card__content {

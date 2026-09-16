@@ -1,10 +1,17 @@
+import { useState } from 'react';
+
 import MediaPlaceholder from './MediaPlaceholder.jsx';
 import { getDdayState } from '../utils/dday.js';
+import { formatDuration } from '../utils/duration.js';
 
 import './VideoCard.css';
 
-const SUMMARY_UNAVAILABLE_NOTICE =
-  '자막을 찾을 수 없어 AI 요약이 불가능한 영상입니다';
+// PRD 2.2 상태별 안내 문구(pending/unavailable/failed). done은 summary 배열을 그대로 표시한다.
+const SUMMARY_STATUS_MESSAGE = {
+  pending: 'AI 요약을 생성하고 있습니다.',
+  unavailable: '자막을 찾을 수 없어 AI 요약이 불가능한 영상입니다.',
+  failed: '요약 생성에 실패했습니다. 잠시 후 다시 시도합니다.',
+};
 
 const VideoCard = ({
   video,
@@ -15,8 +22,11 @@ const VideoCard = ({
   onArchive,
   onDelete,
 }) => {
+  const [thumbnailFailed, setThumbnailFailed] = useState(false);
   const dday = getDdayState(video);
   const isBusy = pendingAction !== null;
+  const duration = formatDuration(video.durationSeconds);
+  const showThumbnail = video.thumbnailUrl && !thumbnailFailed;
 
   return (
     <article
@@ -25,7 +35,19 @@ const VideoCard = ({
       }
     >
       <div className="video-card__media">
-        <MediaPlaceholder label="썸네일 없음" ratio="16/9" radius="sm" />
+        {showThumbnail ? (
+          <img
+            className="video-card__thumbnail"
+            src={video.thumbnailUrl}
+            alt={video.title}
+            onError={() => setThumbnailFailed(true)}
+          />
+        ) : (
+          <MediaPlaceholder label="썸네일 없음" ratio="16/9" radius="sm" />
+        )}
+        {duration ? (
+          <span className="video-card__duration">{duration}</span>
+        ) : null}
       </div>
 
       <div className="video-card__content">
@@ -41,7 +63,7 @@ const VideoCard = ({
         <h3 className="type-body-strong video-card__title">{video.title}</h3>
         <p className="type-caption video-card__channel">{video.channelName}</p>
 
-        {video.summary ? (
+        {video.summaryStatus === 'done' && video.summary ? (
           <ul className="video-card__summary">
             {video.summary.map((line) => (
               <li key={line} className="type-body video-card__summary-line">
@@ -51,7 +73,7 @@ const VideoCard = ({
           </ul>
         ) : (
           <p className="type-body video-card__summary-missing">
-            {SUMMARY_UNAVAILABLE_NOTICE}
+            {SUMMARY_STATUS_MESSAGE[video.summaryStatus] ?? SUMMARY_STATUS_MESSAGE.pending}
           </p>
         )}
 
