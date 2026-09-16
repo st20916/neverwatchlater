@@ -85,3 +85,92 @@ export async function createPlaylist(accessToken, title, { description = '', pri
 
   return { id: created.id, title: created.snippet?.title ?? title };
 }
+
+/**
+ * 재생목록에 담긴 모든 영상 항목을 조회한다(페이지네이션 전체 순회).
+ * 영상 길이(durationSeconds)는 이 응답에 포함되지 않는다 — 별도 videos.list 조회가 필요하다.
+ * @returns {Promise<Array<{
+ *   videoId: string,
+ *   playlistItemId: string,
+ *   title: string,
+ *   channelName: string,
+ *   thumbnailUrl: string,
+ *   publishedAt: string,
+ * }>>}
+ */
+export async function listPlaylistItems(accessToken, playlistId) {
+  const items = [];
+  let pageToken;
+
+  do {
+    const params = new URLSearchParams({
+      part: 'snippet',
+      playlistId,
+      maxResults: '50',
+    });
+    if (pageToken) params.set('pageToken', pageToken);
+
+    const page = await youtubeFetch(accessToken, `/playlistItems?${params.toString()}`);
+
+    for (const item of page.items || []) {
+      const videoId = item.snippet?.resourceId?.videoId;
+      // 삭제되었거나 접근할 수 없는 항목은 videoId가 없을 수 있어 건너뛴다.
+      if (!videoId) continue;
+
+      items.push({
+        videoId,
+        playlistItemId: item.id,
+        title: item.snippet?.title ?? '',
+        channelName: item.snippet?.videoOwnerChannelTitle ?? item.snippet?.channelTitle ?? '',
+        thumbnailUrl:
+          item.snippet?.thumbnails?.medium?.url ?? item.snippet?.thumbnails?.default?.url ?? '',
+        publishedAt: item.snippet?.publishedAt ?? new Date().toISOString(),
+      });
+    }
+
+    pageToken = page.nextPageToken;
+  } while (pageToken);
+
+  return items;
+}
+
+/**
+ * ISO 8601 duration(예: "PT1H2M10S", "PT20M34S")을 초 단위로 변환한다.
+ * 라이브 방송 등 재생 시간이 없는 경우 YouTube가 "P0D" 같은 값을 주는데, 이 경우 null을
+ * 반환한다(재생 시간 정보 없음으로 취급).
+ * @returns {number | null}
+ */
+export function parseIso8601Duration(duration) {
+  if (!duration) return null;
+
+  const match = /^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/.exec(duration);
+  if (!match) return null;
+
+  const hours = Number(match[1] || 0);
+  const minutes = Number(match[2] || 0);
+  const seconds = Number(match[3] || 0);
+
+  return hours * 3600 + minutes * 60 + seconds;
+}
+
+/**
+ * 여러 영상의 길이(초)를 한 번에 조회한다(한 번에 최대 50개씩 배치 조회).
+ * @returns {Promise<Record<string, number | null>>} videoId → durationSeconds
+ */
+export async function getVideoDurations(accessToken, videoIds) {
+  const durations = {};
+
+  for (let i = 0; i < videoIds.length; i += 50) {
+    const batch = videoIds.slice(i, i + 50);
+    if (batch.length === 0) continue;
+
+    const params = new URLSearchParams({ part: 'contentDetails', id: batch.join(',') });
+    const page = await youtubeFetch(accessToken, `/videos?${params.toString()}`);
+
+    for (const item of page.items || []) {
+      durations[item.id] = parseIso8601Duration(item.contentDetails?.duration);
+    }
+  }
+
+  return durations;
+}

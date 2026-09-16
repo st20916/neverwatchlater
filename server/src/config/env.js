@@ -20,6 +20,10 @@ export const env = {
     // 반드시 SESSION_SECRET을 설정해야 한다 (아래 assertRequiredEnv에서 강제).
     secret: process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex'),
   },
+  gemini: {
+    apiKey: process.env.GEMINI_API_KEY || '',
+    model: process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite',
+  },
 };
 
 export const isProduction = env.nodeEnv === 'production';
