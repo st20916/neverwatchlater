@@ -13,14 +13,18 @@ import { OAuth2Client } from 'google-auth-library';
 
 import { env } from '../config/env.js';
 
+// 전용 재생목록(Neverwatchlater) 조회/생성/관리를 위해 필요한 scope.
+// docs/product-specs/playlist.md 참고. services/googleSession.service.js의
+// 세션 scope 검증에서도 이 값을 그대로 사용한다.
+export const YOUTUBE_SCOPE = 'https://www.googleapis.com/auth/youtube';
+
 // docs/product-specs/auth.md 1절에 기록된 최소 scope.
 // 추가/변경 시 해당 문서에 이유를 함께 남긴다.
 export const GOOGLE_OAUTH_SCOPES = [
   'openid',
   'https://www.googleapis.com/auth/userinfo.email',
   'https://www.googleapis.com/auth/userinfo.profile',
-  // 전용 재생목록(Neverwatchlater) 조회/생성/관리를 위해 필요. docs/product-specs/playlist.md 참고.
-  'https://www.googleapis.com/auth/youtube',
+  YOUTUBE_SCOPE,
 ];
 
 function createClient() {

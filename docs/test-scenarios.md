@@ -114,22 +114,23 @@ Invoke-WebRequest -Uri "http://localhost:4000/api/auth/google/callback" -Maximum
 2. Google 계정 선택 후 요청된 권한(로그인 정보 + YouTube 관리 권한)에 동의.
    - 이전에 `youtube` scope 없이 로그인한 적이 있다면, `prompt: 'consent'` 설정으로 인해
      다시 동의 화면이 표시됩니다.
-3. 로그인 성공 시 `http://localhost:5173/oauth/success`로 리다이렉트됨을 확인.
-4. 화면에 이메일/이름/Google ID가 표시되고, 이어서 자동으로 `POST /api/playlists/setup`이
-   호출되어 "전용 재생목록 설정" 카드에 `Playlist ID`와 신규 생성 여부가 표시되는지 확인.
+3. 로그인 성공 시 `http://localhost:5173/playlist-setup`(PlaylistSetupPage)로 리다이렉트됨을 확인.
+4. 화면에 연결된 계정 이메일이 표시되고, 이어서 자동으로 `POST /api/playlists/setup`이
+   호출되어 각 단계(계정 연결/재생목록 생성/동기화 대상 지정)가 "완료"로 바뀌며 완료
+   문구와 "정리 목록으로 이동" 버튼이 표시되는지 확인.
 5. 실제 Google 계정의 YouTube에서 `Neverwatchlater` 재생목록이 생성되었는지 확인.
 6. 같은 계정으로 2~4단계를 반복 실행 — 두 번째부터는 `신규 생성 여부: 기존 재생목록 사용`
    (`created: false`)으로 표시되어 멱등성이 유지되는지 확인.
 
 ### 2.5 로그인 상태에서의 화면 확인 (브라우저 서브에이전트로 수행)
 
-로그인 세션이 없는 상태에서 `/oauth/success`, `/oauth/error` 화면 자체가 깨지지 않고
+로그인 세션이 없는 상태에서 `/playlist-setup`, `/oauth/error` 화면 자체가 깨지지 않고
 적절한 안내를 보여주는지 브라우저로 직접 확인했습니다.
 
 - `http://localhost:5173/oauth/error?reason=oauth_denied` → 실패 화면과 사유 문구 정상 표시.
-- `http://localhost:5173/oauth/success` → "✅ 로그인 성공" 제목은 표시되나, 세션이 없어
-  `GET /api/auth/me` 호출이 401로 실패하며 "`GET /api/auth/me` 호출 실패: 로그인이
-  필요합니다." 경고 문구가 표시됨(예상된 동작).
+- `http://localhost:5173/playlist-setup` → 세션이 없어 `GET /api/auth/me` 호출이 401로
+  실패하고, "계정 연결" 단계가 "실패"로 표시되며 오류 메시지와 "재생목록 설정 재시도"
+  버튼이 표시됨(예상된 동작).
 
 ---
 

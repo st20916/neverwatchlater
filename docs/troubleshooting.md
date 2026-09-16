@@ -65,3 +65,65 @@ Uncaught Error: You cannot render a <Router> inside another <Router>. You should
 - [ ] `<BrowserRouter>`(혹은 다른 `<Router>` 계열 컴포넌트)는 프로젝트 전체에서 **정확히 한 번**만 사용한다. `grep -r "BrowserRouter" client/src`로 주기적으로 확인해도 좋다.
 - [ ] 새로운 페이지를 추가할 때는 반드시 `App.jsx`의 `<Routes>` 안에 `<Route>`를 추가한다. `main.jsx`나 다른 곳에 별도로 라우팅 로직을 만들지 않는다.
 - [ ] 임시 테스트 페이지(예: OAuth 리다이렉트 확인용)를 추가할 때도 같은 `<Routes>`에 등록해서 라우터가 여러 개 생기지 않도록 한다.
+
+---
+
+## 2. YouTube API `403 Request had insufficient authentication scopes`
+
+### 증상
+
+`POST /api/playlists/setup` 호출 시 서버 로그에 다음과 같은 에러가 남고 클라이언트는 502를 받는다.
+
+```
+Request had insufficient authentication scopes.
+    at youtubeFetch (.../server/src/providers/youtube.js:33:17)
+    at async Module.findPlaylistByTitle (.../server/src/providers/youtube.js:58:18)
+    at async ensureDedicatedPlaylist (.../server/src/services/playlist.service.js:40:17)
+    at async setupPlaylist (.../server/src/controllers/playlist.controller.js:14:20) {
+  statusCode: 502,
+  youtubeStatus: 403
+}
+POST /api/playlists/setup 502 90.067 ms - 756
+```
+
+### 원인
+
+`https://www.googleapis.com/auth/youtube` scope는 로그인 기능이 먼저 구현된 뒤에 추가되었다
+([`docs/product-specs/auth.md`](./product-specs/auth.md) 1절 참고). 그 **scope 추가 이전에 이미
+로그인해 만들어진 세션**은 이 scope에 대한 동의가 없는 액세스 토큰을 갖고 있어, YouTube Data
+API(`GET /youtube/v3/playlists`)를 호출하면 403이 발생한다.
+
+### 해결
+
+**1) 즉시 해결(사용자)**: 로그아웃 후 다시 로그인한다. `providers/google-oauth.js`의
+`generateAuthUrl`에 `prompt: 'consent'`가 설정되어 있어 재로그인 시 `youtube` scope를
+포함한 동의 화면이 다시 표시된다.
+
+**2) 재발 방지(서버 로직)**: YouTube API를 호출하기 전에 세션에 저장된 scope를 먼저 검증해,
+불필요하게 YouTube API를 호출하지 않고 더 명확한 에러로 재로그인을 안내하도록 했다.
+
+- `server/src/controllers/auth.controller.js`: 로그인 콜백에서 Google 토큰 응답의
+  `scope`(공백 구분 문자열)를 `req.session.googleTokens.scope`에 저장.
+- `server/src/services/googleSession.service.js`: `hasYoutubeScope(req)` /
+  `assertYoutubeScope(req)` 추가. 세션 scope에 `YOUTUBE_SCOPE`
+  (`providers/google-oauth.js`에서 export)가 없으면 `statusCode: 403`,
+  `reason: 'insufficient_scope'` 에러를 던진다. 토큰 리프레시 시에도 기존 scope를
+  유지한다.
+- `server/src/controllers/playlist.controller.js`: `setupPlaylist`에서
+  `getValidAccessToken` 전에 `assertYoutubeScope(req)`를 호출해 YouTube API 호출 전에
+  걸러낸다.
+- `server/src/middlewares/errorHandler.js`: `err.reason`이 있으면 JSON 응답에
+  `reason` 필드로 그대로 내려준다(민감 정보 없이 정해진 코드만 노출, `docs/security.md`
+  4절).
+- `client/src/api/playlistApi.js`: 응답의 `reason`을 `Error.reason`에 담아 그대로 전달.
+- `client/src/pages/PlaylistSetupPage.jsx`: `err.reason === 'insufficient_scope'`이면
+  "재생목록 설정 재시도" 버튼(재시도로는 해결 안 됨) 대신 로그인 필요 `ConfirmDialog`를
+  띄워 재로그인으로 안내한다.
+
+### 재발 방지 체크리스트
+
+- [ ] 새 Google OAuth scope를 추가할 때는 `docs/product-specs/auth.md` 1절에 마이그레이션
+  안내를 남기고, 필요하면 `googleSession.service.js`에 해당 scope에 대한 검증 함수를
+  추가한다.
+- [ ] YouTube(또는 다른 Google API)를 호출하는 새 기능을 만들 때는 실제 API를 호출하기 전에
+  세션 scope를 검증해, 모호한 502 대신 명확한 재로그인 안내를 내려준다.

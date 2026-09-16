@@ -21,7 +21,7 @@ export const redirectToGoogle = (req, res) => {
 };
 
 /**
- * 클라이언트의 결과 화면(`/oauth/success`, `/oauth/error`)으로 리다이렉트하는 헬퍼.
+ * 클라이언트의 결과 화면(`/playlist-setup`, `/oauth/error`)으로 리다이렉트하는 헬퍼.
  * OAuth 콜백은 브라우저 최상위 내비게이션이므로, 성공/실패 모두 JSON이 아니라
  * 클라이언트 화면으로 리다이렉트한다.
  */
@@ -36,7 +36,8 @@ function redirectToClient(res, path, params = {}) {
 /**
  * GET /api/auth/google/callback
  * 인증 코드를 토큰으로 교환하고, 사용자 정보를 세션에 저장한다.
- * 성공/실패 결과는 클라이언트의 `/oauth/success` 또는 `/oauth/error` 화면으로 리다이렉트한다.
+ * 성공 시 클라이언트의 `/playlist-setup`(전용 재생목록 설정 화면)으로, 실패 시
+ * `/oauth/error` 화면으로 리다이렉트한다.
  *
  * 주의(docs/security.md 4절): 토큰 값, 인증 코드는 로그/에러 응답(쿼리스트링 포함)에
  * 절대 포함하지 않는다. 실패 이유는 사전에 정의한 코드(reason)만 노출한다.
@@ -76,9 +77,13 @@ export const handleGoogleCallback = async (req, res) => {
       accessToken: tokens.access_token,
       refreshToken: tokens.refresh_token,
       expiryDate: tokens.expiry_date,
+      // Google 토큰 응답의 공백 구분 scope 문자열. 세션 scope 검증(assertYoutubeScope)에
+      // 사용한다 — 예전에 로그인해 새 scope 동의가 없는 세션을 구분하기 위함
+      // (docs/product-specs/auth.md 1절 마이그레이션 안내).
+      scope: tokens.scope,
     };
 
-    redirectToClient(res, '/oauth/success');
+    redirectToClient(res, '/playlist-setup');
   } catch (err) {
     // 토큰 교환/검증 실패의 상세 내용은 서버 로그에만 남기고, 클라이언트에는
     // 정해진 reason 코드만 전달한다 (docs/security.md 4절).

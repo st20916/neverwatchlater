@@ -13,7 +13,11 @@ export async function setupDedicatedPlaylist() {
   const body = await res.json().catch(() => ({}));
 
   if (!res.ok) {
-    throw new Error(body.message || '전용 재생목록 설정에 실패했습니다.');
+    const error = new Error(body.message || '전용 재생목록 설정에 실패했습니다.');
+    // 서버가 내려주는 reason 코드(예: 'insufficient_scope')를 그대로 전달한다.
+    // 호출하는 쪽에서 이 값으로 재로그인 안내 여부를 판단한다.
+    error.reason = body.reason;
+    throw error;
   }
 
   return body; // { playlistId, created }
