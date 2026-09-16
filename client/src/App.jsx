@@ -1,6 +1,6 @@
 import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom';
 
-import GlobalNav from './components/GlobalNav.jsx';
+import LandingHeader from './components/LandingHeader.jsx';
 import SiteFooter from './components/SiteFooter.jsx';
 import AuthFailedPage from './pages/AuthFailedPage.jsx';
 import AuthLoadingPage from './pages/AuthLoadingPage.jsx';
@@ -29,7 +29,7 @@ const AppLayout = () => {
 
   return (
     <div className={showChrome ? 'app-shell' : 'app-shell app-shell--guide'}>
-      {showChrome ? <GlobalNav /> : null}
+      <LandingHeader />
 
       <main className="app-shell__main">
         <Routes>
@@ -44,7 +44,7 @@ const AppLayout = () => {
         </Routes>
       </main>
 
-      {showChrome ? <SiteFooter /> : null}
+      <SiteFooter />
     </div>
   );
 };
