@@ -41,5 +41,9 @@ describe('LandingPage', () => {
     expect(screen.getByRole('heading', { name: '나중에' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: '안볼래요' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: '보관하기' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: '일의 본질을 다시 생각하는 시간' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('D+08')).toBeInTheDocument();
   });
 });

@@ -34,18 +34,19 @@
   letter-spacing: -0.224px;
 }
 
-.video-pagination__page--current,
 .video-pagination__control:hover:not(:disabled),
-.video-pagination__page:hover {
+.video-pagination__page:hover:not(.video-pagination__page--current) {
   color: var(--ink);
   border-color: var(--ink);
 }
 
-.video-pagination__page--current {
+.video-pagination__page--current,
+.video-pagination__page--current:hover {
   color: #f5f3ed;
   background: var(--ink);
   border-color: var(--ink);
   box-shadow: rgba(78, 143, 139, 0.22) 4px 5px 0;
+  transition: none;
 }
 
 .video-pagination__control:disabled {

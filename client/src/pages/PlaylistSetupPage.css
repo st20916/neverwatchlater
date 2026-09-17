@@ -1,11 +1,9 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&family=DM+Serif+Display:ital@0;1&display=swap');
-
 .playlist-setup {
   --nwl-ink: #252528;
   --nwl-soft-ink: rgba(37, 37, 40, 0.62);
   --nwl-line: rgba(37, 37, 40, 0.2);
   --nwl-accent: #4e8f8b;
-  --nwl-background: #e4e2d9;
+  --nwl-background: #F7F4ED;
   --ink: var(--nwl-ink);
   --muted-ink: var(--nwl-soft-ink);
   --teal: var(--nwl-accent);
@@ -40,24 +38,27 @@
   flex-direction: column;
   align-items: flex-start;
   gap: var(--spacing-sm);
-  padding-bottom: var(--spacing-xl);
-  border-bottom: 1px solid var(--rule);
 }
 
 .playlist-setup__kicker {
   display: inline-flex;
   margin: 0;
-  padding: 6px 14px;
+  padding: 0;
   color: var(--teal);
-  background: rgba(78, 143, 139, 0.12);
-  border-radius: 999px;
+  background: none;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 700;
   line-height: 1.43;
   letter-spacing: -0.224px;
 }
 
-.playlist-setup__header h1 {
+.playlist-setup__heading {
+  display: flex;
+  align-items: flex-end;
+  width: 100%;
+}
+
+.playlist-setup__heading h1 {
   margin: 0;
   color: var(--ink);
   font-family: var(--font-display);
@@ -142,10 +143,11 @@
   border-radius: 50%;
   color: var(--muted-ink);
   background: color-mix(in srgb, var(--nwl-background) 82%, transparent);
-  font-family: 'DM Mono', ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-family: var(--font-text);
   font-size: 11px;
   font-weight: 500;
   letter-spacing: 0.08em;
+  font-variant-numeric: tabular-nums;
 }
 
 .playlist-setup__rail-spin {
@@ -237,10 +239,11 @@
 
 .playlist-setup__index {
   color: var(--teal);
-  font-family: 'DM Mono', ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-family: var(--font-text);
   font-size: 12px;
   font-weight: 500;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.08em;
+  font-variant-numeric: tabular-nums;
 }
 
 .playlist-setup__step-label {
@@ -345,6 +348,14 @@
   background: rgba(78, 143, 139, 0.16);
 }
 
+.playlist-setup__result-copy {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  min-width: 0;
+  flex: 1;
+}
+
 .playlist-setup__result-title {
   display: inline-flex;
   align-items: center;
@@ -355,6 +366,16 @@
   font-weight: 500;
   letter-spacing: -0.224px;
   line-height: 1.4;
+  word-break: keep-all;
+}
+
+.playlist-setup__result-detail {
+  margin: 0;
+  padding-left: calc(28px + var(--spacing-sm));
+  font-size: 14px;
+  font-weight: 400;
+  letter-spacing: -0.224px;
+  line-height: 1.43;
   word-break: keep-all;
 }
 
@@ -519,7 +540,7 @@
 }
 
 @media (max-width: 1068px) {
-  .playlist-setup__header h1 {
+  .playlist-setup__heading h1 {
     font-size: 40px;
     letter-spacing: 0;
     line-height: 1.1;
@@ -529,6 +550,11 @@
 @media (max-width: 760px) {
   .playlist-setup__break {
     display: none;
+  }
+
+  .playlist-setup__heading {
+    flex-direction: column;
+    align-items: flex-start;
   }
 
   .playlist-setup__inner {
@@ -605,14 +631,20 @@
     font-size: 18px;
   }
 
-  .playlist-setup__banner {
+  .playlist-setup__banner,
+  .playlist-setup__result {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .playlist-setup__action {
+    width: 100%;
+    justify-content: center;
   }
 }
 
 @media (max-width: 640px) {
-  .playlist-setup__header h1 {
+  .playlist-setup__heading h1 {
     font-size: 34px;
     letter-spacing: -0.374px;
     line-height: 1.47;

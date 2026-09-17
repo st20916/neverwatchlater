@@ -69,4 +69,27 @@ describe('PlaylistSetupPage', () => {
       screen.getByText('재생목록을 만드는 중입니다… 잠시만 기다려 주세요.'),
     ).toBeInTheDocument();
   });
+
+  it('계정 연결 실패 상태에서 원인과 재로그인 버튼을 보여준다', () => {
+    renderPage();
+
+    fireEvent.click(screen.getByRole('button', { name: '계정 연결 실패' }));
+
+    expect(
+      screen.getByRole('heading', {
+        level: 1,
+        name: 'Google 계정 연결에 실패했습니다',
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('SETUP / ACCOUNT')).toBeInTheDocument();
+    expect(
+      screen.getByText('Google 계정 연결').closest('li'),
+    ).toHaveClass('playlist-setup__step--failed');
+    expect(
+      screen.getByText('Google 계정을 연결하지 못했습니다'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: '다시 로그인 시도' }),
+    ).toHaveAttribute('href', '/auth/loading');
+  });
 });

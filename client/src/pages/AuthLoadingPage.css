@@ -1,11 +1,9 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&family=DM+Serif+Display:ital@0;1&display=swap');
-
 .auth-loading {
   --nwl-ink: #252528;
   --nwl-soft-ink: rgba(37, 37, 40, 0.62);
   --nwl-line: rgba(37, 37, 40, 0.2);
   --nwl-accent: #4e8f8b;
-  --nwl-background: #e4e2d9;
+  --nwl-background: #F7F4ED;
   --red: #c45c5a;
   position: relative;
   isolation: isolate;
@@ -16,6 +14,7 @@
   padding: clamp(32px, 7vh, 72px) var(--spacing-lg) var(--spacing-xxl);
   color: var(--nwl-ink);
   background: var(--nwl-background);
+  font-family: var(--font-text);
 }
 
 .auth-loading .nwl-grain {
@@ -68,9 +67,9 @@
   height: 188px;
   place-items: center;
   color: var(--nwl-ink);
-  font-family: 'DM Serif Display', Georgia, serif;
+  font-family: var(--font-display);
   font-size: 28px;
-  font-weight: 400;
+  font-weight: 700;
   letter-spacing: 0.18em;
 }
 
@@ -128,7 +127,7 @@
 .auth-loading__kicker {
   margin: var(--spacing-xs) 0 0;
   color: var(--nwl-accent);
-  font-family: 'DM Mono', ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-family: var(--font-text);
   font-size: 11px;
   font-weight: 400;
   letter-spacing: 0.16em;
@@ -146,10 +145,10 @@
 }
 
 .auth-loading__brand {
-  font-family: 'DM Serif Display', Georgia, serif;
-  font-weight: 400;
-  letter-spacing: -0.075em;
-  line-height: 0.95;
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1.07;
 }
 
 .auth-loading__title em {
@@ -163,7 +162,7 @@
 .auth-loading__copy {
   margin: 0;
   color: var(--nwl-soft-ink);
-  font-family: 'DM Sans', var(--font-text);
+  font-family: var(--font-text);
   font-size: 14px;
   font-weight: 400;
   letter-spacing: -0.01em;
@@ -208,7 +207,7 @@
 .auth-loading__foot {
   margin: var(--spacing-sm) 0 0;
   color: var(--nwl-accent);
-  font-family: 'DM Sans', var(--font-text);
+  font-family: var(--font-text);
   font-size: 12px;
   font-weight: 400;
   letter-spacing: -0.08px;
@@ -224,7 +223,7 @@
 
 .auth-loading__actions a {
   color: var(--nwl-soft-ink);
-  font-family: 'DM Sans', var(--font-text);
+  font-family: var(--font-text);
   font-size: 12px;
   letter-spacing: -0.08px;
   text-decoration: underline;

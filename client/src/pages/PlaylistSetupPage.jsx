@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 
 import StatePreview from '../components/StatePreview.jsx';
 import Toast from '../components/Toast.jsx';
+import { getAuthFailureCopy } from '../data/authFailureReasons.js';
 
 import './PlaylistSetupPage.css';
 
@@ -10,6 +11,7 @@ const SETUP_STATES = [
   { value: 'progress', label: '설정 진행 중' },
   { value: 'success', label: '설정 성공' },
   { value: 'failed', label: '설정 실패' },
+  { value: 'accountFailed', label: '계정 연결 실패' },
 ];
 
 const STEPS = [
@@ -35,6 +37,12 @@ const STEP_STATUS = {
   failed: {
     account: 'done',
     playlist: 'failed',
+    target: 'waiting',
+    complete: 'waiting',
+  },
+  accountFailed: {
+    account: 'failed',
+    playlist: 'waiting',
     target: 'waiting',
     complete: 'waiting',
   },
@@ -120,9 +128,25 @@ const STATUS_LABEL = {
   failed: '실패',
 };
 
-const PlaylistSetupPage = () => {
-  const [setupState, setSetupState] = useState('progress');
+const SETUP_HEADER = {
+  kicker: 'SETUP / PLAYLIST',
+  title: '전용 재생목록을 설정하고 있습니다',
+};
+
+const ACCOUNT_FAILED_HEADER = {
+  kicker: 'SETUP / ACCOUNT',
+  title: 'Google 계정 연결에 실패했습니다',
+  description: '권한을 확인하고 다시 로그인해 주세요.',
+};
+
+const PlaylistSetupPage = ({
+  initialState = 'progress',
+  failureReason = '',
+  showPreview = true,
+} = {}) => {
+  const [setupState, setSetupState] = useState(initialState);
   const [toast, setToast] = useState(null);
+  const authFailureCopy = getAuthFailureCopy(failureReason);
 
   const changeState = (nextState) => {
     setSetupState(nextState);
@@ -140,10 +164,20 @@ const PlaylistSetupPage = () => {
       return;
     }
 
+    if (nextState === 'accountFailed') {
+      setToast({
+        tone: 'error',
+        message: 'Google 계정을 연결하지 못했습니다. 다시 로그인해 주세요.',
+      });
+      return;
+    }
+
     setToast(null);
   };
 
   const stepStatus = STEP_STATUS[setupState];
+  const isAccountFailed = setupState === 'accountFailed';
+  const headerCopy = isAccountFailed ? ACCOUNT_FAILED_HEADER : SETUP_HEADER;
 
   return (
     <section className="nwl-page playlist-setup">
@@ -151,13 +185,21 @@ const PlaylistSetupPage = () => {
 
       <div className="playlist-setup__inner">
         <header className="playlist-setup__header">
-          <p className="playlist-setup__kicker">SETUP / PLAYLIST</p>
-          <h1>전용 재생목록을 설정하고 있습니다</h1>
+          <p className="playlist-setup__kicker">{headerCopy.kicker}</p>
+          <div className="playlist-setup__heading">
+            <h1>{headerCopy.title}</h1>
+          </div>
           <p className="playlist-setup__description">
-            유튜브 계정에 ‘Neverwatchlater’ 재생목록을 만들고 동기화 대상으로
-            지정합니다.{' '}
-            <br className="playlist-setup__break" />
-            기본 ‘나중에 볼 동영상’ 재생목록은 사용하지 않습니다.
+            {isAccountFailed ? (
+              headerCopy.description
+            ) : (
+              <>
+                유튜브 계정에 ‘Neverwatchlater’ 재생목록을 만들고 동기화 대상으로
+                지정합니다.{' '}
+                <br className="playlist-setup__break" />
+                기본 ‘나중에 볼 동영상’ 재생목록은 사용하지 않습니다.
+              </>
+            )}
           </p>
         </header>
 
@@ -234,6 +276,24 @@ const PlaylistSetupPage = () => {
           </div>
         ) : null}
 
+        {setupState === 'accountFailed' ? (
+          <div className="playlist-setup__result playlist-setup__result--failed" role="alert">
+            <div className="playlist-setup__result-copy">
+              <p className="playlist-setup__result-title">
+                <span className="playlist-setup__result-mark" aria-hidden="true">
+                  <AlertIcon />
+                </span>
+                {authFailureCopy.title}
+              </p>
+              <p className="playlist-setup__result-detail">{authFailureCopy.detail}</p>
+            </div>
+            <Link to="/auth/loading" className="playlist-setup__action">
+              <RetryIcon />
+              다시 로그인 시도
+            </Link>
+          </div>
+        ) : null}
+
         {setupState === 'success' ? (
           <div className="playlist-setup__result playlist-setup__result--success">
             <p className="playlist-setup__result-title">
@@ -249,11 +309,13 @@ const PlaylistSetupPage = () => {
           </div>
         ) : null}
 
-        <StatePreview
-          options={SETUP_STATES}
-          value={setupState}
-          onChange={changeState}
-        />
+        {showPreview ? (
+          <StatePreview
+            options={SETUP_STATES}
+            value={setupState}
+            onChange={changeState}
+          />
+        ) : null}
       </div>
 
       {toast ? (

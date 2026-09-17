@@ -2,8 +2,25 @@ import { useRef } from 'react';
 import { Link } from 'react-router-dom';
 
 import useSectionReveal from '../hooks/useSectionReveal.js';
+import VideoCard from './VideoCard.jsx';
 
 import './ServiceIntro.css';
+
+const DEMO_VIDEO = {
+  id: 'demo-insight',
+  title: '일의 본질을 다시 생각하는 시간',
+  channelName: 'Study Archive',
+  savedAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
+  duration: '16:42',
+  isArchived: false,
+  summary: [
+    '바쁘게 움직이는 것과 중요한 일을 하는 것은 다르다.',
+    '집중을 위해서는 덜어내는 선택이 필요하다.',
+    '오늘의 작은 결정이 내일의 시간을 만든다.',
+  ],
+};
+
+const noop = () => {};
 
 const ArrowUpRight = ({ size = 19 }) => (
   <svg
@@ -154,47 +171,13 @@ const ServiceIntro = () => {
         </p>
       </div>
       <div className="demo-stage">
-        <div className="demo-card">
-          <div className="demo-thumb">
-            <div className="thumb-play">▶</div>
-            <span className="thumb-label">YOUTUBE / 16:42</span>
-          </div>
-          <div className="demo-meta">
-            <p className="demo-channel">
-              STUDY ARCHIVE
-              <span className="demo-dday-badge">D+08</span>
-            </p>
-            <h3>일의 본질을 다시 생각하는 시간</h3>
-            <div className="demo-summary">
-              <span className="summary-label">AI 3줄 요약</span>
-              <p>
-                • 바쁘게 움직이는 것과 중요한 일을 하는 것은 다르다.
-                <br />
-                • 집중을 위해서는 덜어내는 선택이 필요하다.
-                <br />
-                • 오늘의 작은 결정이 내일의 시간을 만든다.
-              </p>
-            </div>
-          </div>
-        </div>
-        <div className="demo-actions" aria-hidden="true">
-          <span className="demo-action-watch">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="12"
-              height="12"
-              viewBox="0 0 12 12"
-              fill="currentColor"
-              aria-hidden="true"
-            >
-              <path d="M2.5 1.2v9.6L11 6 2.5 1.2Z" />
-            </svg>
-            바로 보기
-          </span>
-          <span>나중에</span>
-          <span>안볼래요</span>
-          <span>보관하기</span>
-        </div>
+        <VideoCard
+          video={DEMO_VIDEO}
+          onWatch={noop}
+          onLater={noop}
+          onArchive={noop}
+          onDelete={noop}
+        />
       </div>
     </section>
 

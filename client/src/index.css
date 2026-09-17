@@ -81,8 +81,7 @@
   line-height: 1.47;
   letter-spacing: -0.374px;
   color: var(--color-body);
-  background: #e4e2d9;
-  scrollbar-color: rgba(37, 37, 40, 0.28) #e4e2d9;
+  background: #F7F4ED;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
@@ -94,26 +93,17 @@
 
 html {
   overflow-x: clip;
-  background: #e4e2d9;
+  background: #F7F4ED;
+  scrollbar-width: none;
 }
 
 html::-webkit-scrollbar {
-  width: 11px;
-  background: #e4e2d9;
-}
-
-html::-webkit-scrollbar-track {
-  background: #e4e2d9;
-}
-
-html::-webkit-scrollbar-thumb {
-  background: rgba(37, 37, 40, 0.28);
-  border-radius: 999px;
+  display: none;
 }
 
 body {
   margin: 0;
-  background: #e4e2d9;
+  background: #F7F4ED;
 }
 
 h1,

@@ -36,21 +36,25 @@ describe('VideoCard', () => {
   it('7일 이상 방치된 영상에 D-Day 경고를 표시한다', () => {
     renderCard(baseVideo);
 
-    expect(screen.getByText('D+03')).toBeInTheDocument();
+    const badge = screen.getByText('D+03');
+    expect(badge).toBeInTheDocument();
+    expect(badge).toHaveClass('video-card__badge--warning');
   });
 
   it('7일 미만 영상에는 방치 경고를 표시하지 않는다', () => {
     renderCard({ ...baseVideo, savedAt: daysAgo(3) });
 
-    expect(screen.getByText('D-04')).toBeInTheDocument();
+    const badge = screen.getByText('D-04');
+    expect(badge).toBeInTheDocument();
+    expect(badge).toHaveClass('video-card__badge--neutral');
     expect(screen.queryByText('D+03')).not.toBeInTheDocument();
   });
 
   it('보관 상태 영상은 D-Day 판정에서 제외한다', () => {
     renderCard({ ...baseVideo, isArchived: true });
 
-    expect(screen.getByText('보관')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '보관하기' })).toBeDisabled();
+    expect(screen.getByText('보관됨')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '보관' })).toBeDisabled();
   });
 
   it('자막이 없는 영상에는 요약 불가 안내를 표시한다', () => {
@@ -64,7 +68,7 @@ describe('VideoCard', () => {
   it('썸네일 자리에 회색 플레이스홀더를 표시한다', () => {
     renderCard(baseVideo);
 
-    expect(screen.getByRole('img', { name: '썸네일 없음' })).toBeInTheDocument();
+    expect(screen.getByText('썸네일 없음')).toBeInTheDocument();
   });
 
   it('액션 버튼을 누르면 해당 핸들러를 호출한다', () => {

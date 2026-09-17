@@ -1,16 +1,14 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&family=DM+Serif+Display:ital@0;1&display=swap');
-
 .nwl-page {
   --nwl-ink: #252528;
   --nwl-soft-ink: rgba(37, 37, 40, 0.62);
   --nwl-line: rgba(37, 37, 40, 0.2);
   --nwl-accent: #4e8f8b;
-  --nwl-background: #e4e2d9;
+  --nwl-background: #F7F4ED;
   position: relative;
   isolation: isolate;
   color: var(--nwl-ink);
   background: var(--nwl-background);
-  font-family: 'DM Mono', 'SFMono-Regular', Consolas, monospace;
+  font-family: var(--font-text);
 }
 
 .nwl-grain {

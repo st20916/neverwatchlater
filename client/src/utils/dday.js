@@ -42,7 +42,7 @@ const padTwo = (value) => String(Math.max(0, value)).padStart(2, '0');
 
 /**
  * 랜딩 데모 카드와 같은 D+08 / D-03 배지 표기.
- * 보관 영상은 경과일 대신 '보관'으로 표시한다.
+ * 보관 영상은 경과일 대신 '보관됨'으로 표시한다.
  */
 export const getDdayBadge = (video, now = new Date()) => {
   const state = getDdayState(video, now);
@@ -52,7 +52,7 @@ export const getDdayBadge = (video, now = new Date()) => {
   }
 
   if (video.isArchived) {
-    return { text: '보관', tone: 'archived', isNeglected: false };
+    return { text: '보관됨', tone: 'archived', isNeglected: false };
   }
 
   if (state.isNeglected) {
