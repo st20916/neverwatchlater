@@ -36,21 +36,20 @@ describe('VideoCard', () => {
   it('7일 이상 방치된 영상에 D-Day 경고를 표시한다', () => {
     renderCard(baseVideo);
 
-    expect(screen.getByText('D+3 · 7일 경과 청소 대상')).toBeInTheDocument();
-    expect(screen.getByText('방치 경고')).toBeInTheDocument();
+    expect(screen.getByText('D+03')).toBeInTheDocument();
   });
 
   it('7일 미만 영상에는 방치 경고를 표시하지 않는다', () => {
     renderCard({ ...baseVideo, savedAt: daysAgo(3) });
 
-    expect(screen.getByText('D-4 · 저장 후 3일')).toBeInTheDocument();
-    expect(screen.queryByText('방치 경고')).not.toBeInTheDocument();
+    expect(screen.getByText('D-04')).toBeInTheDocument();
+    expect(screen.queryByText('D+03')).not.toBeInTheDocument();
   });
 
   it('보관 상태 영상은 D-Day 판정에서 제외한다', () => {
     renderCard({ ...baseVideo, isArchived: true });
 
-    expect(screen.getByText('보관 중 · D-Day 제외')).toBeInTheDocument();
+    expect(screen.getByText('보관')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '보관하기' })).toBeDisabled();
   });
 
@@ -72,7 +71,7 @@ describe('VideoCard', () => {
     const onDelete = vi.fn();
     renderCard(baseVideo, { onDelete });
 
-    fireEvent.click(screen.getByRole('button', { name: '🗑 안볼래요' }));
+    fireEvent.click(screen.getByRole('button', { name: '안볼래요' }));
 
     expect(onDelete).toHaveBeenCalledWith(baseVideo);
   });
@@ -80,7 +79,7 @@ describe('VideoCard', () => {
   it('요청 처리 중에는 정리 액션을 비활성화한다', () => {
     renderCard(baseVideo, { pendingAction: 'delete' });
 
-    expect(screen.getByRole('button', { name: '▶ 바로 보기' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '바로 보기' })).toBeDisabled();
     expect(screen.getByRole('button', { name: '나중에' })).toBeDisabled();
   });
 });

@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom';
 
 import LandingHeader from './components/LandingHeader.jsx';
@@ -24,8 +25,16 @@ const CHROME_PATHS = [
 ];
 
 const AppLayout = () => {
-  const { pathname } = useLocation();
+  const { pathname, hash } = useLocation();
   const showChrome = CHROME_PATHS.includes(pathname);
+
+  useEffect(() => {
+    if (hash) {
+      return;
+    }
+
+    window.scrollTo(0, 0);
+  }, [pathname, hash]);
 
   return (
     <div className={showChrome ? 'app-shell' : 'app-shell app-shell--guide'}>

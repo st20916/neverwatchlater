@@ -13,16 +13,105 @@ const SETUP_STATES = [
 ];
 
 const STEPS = [
-  { id: 'account', label: 'Google 계정 연결' },
-  { id: 'playlist', label: '‘Neverwatchlater’ 전용 재생목록 생성' },
-  { id: 'target', label: '동기화 대상 지정' },
+  { id: 'account', label: 'Google 계정 연결', rail: '계정 연결' },
+  { id: 'playlist', label: '‘Neverwatchlater’ 전용 재생목록 생성', rail: '재생목록 생성' },
+  { id: 'target', label: '동기화 대상 지정', rail: '동기화 지정' },
+  { id: 'complete', label: '설정 완료', rail: '설정 완료' },
 ];
 
 const STEP_STATUS = {
-  progress: { account: 'done', playlist: 'current', target: 'waiting' },
-  success: { account: 'done', playlist: 'done', target: 'done' },
-  failed: { account: 'done', playlist: 'failed', target: 'waiting' },
+  progress: {
+    account: 'done',
+    playlist: 'current',
+    target: 'waiting',
+    complete: 'waiting',
+  },
+  success: {
+    account: 'done',
+    playlist: 'done',
+    target: 'done',
+    complete: 'done',
+  },
+  failed: {
+    account: 'done',
+    playlist: 'failed',
+    target: 'waiting',
+    complete: 'waiting',
+  },
 };
+
+const CheckIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="16"
+    height="16"
+    viewBox="0 0 16 16"
+    fill="none"
+    aria-hidden="true"
+  >
+    <path
+      d="M3.2 8.2 6.6 11.5 12.8 4.6"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+const AlertIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="18"
+    height="18"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    aria-hidden="true"
+  >
+    <circle cx="12" cy="12" r="9.25" />
+    <path d="M12 8v5" />
+    <circle cx="12" cy="16.25" r="0.85" fill="currentColor" stroke="none" />
+  </svg>
+);
+
+const RetryIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="18"
+    height="18"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+    <path d="M3 3v5h5" />
+  </svg>
+);
+
+const ArrowUpRight = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="18"
+    height="18"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M7 7h10v10" />
+    <path d="M7 17 17 7" />
+  </svg>
+);
 
 const STATUS_LABEL = {
   done: '완료',
@@ -57,72 +146,114 @@ const PlaylistSetupPage = () => {
   const stepStatus = STEP_STATUS[setupState];
 
   return (
-    <section className="tile tile--light playlist-setup">
-      <div className="tile__inner tile__inner--reading">
-        <StatePreview
-          options={SETUP_STATES}
-          value={setupState}
-          onChange={changeState}
-        />
+    <section className="nwl-page playlist-setup">
+      <div className="nwl-grain" aria-hidden="true" />
 
-        <h1 className="type-display-md playlist-setup__title">
-          전용 재생목록을 설정하고 있습니다
-        </h1>
-        <p className="type-body playlist-setup__description">
-          유튜브 계정에 ‘Neverwatchlater’ 재생목록을 만들고 동기화 대상으로
-          지정합니다. 기본 ‘나중에 볼 동영상’ 재생목록은 사용하지 않습니다.
-        </p>
+      <div className="playlist-setup__inner">
+        <header className="playlist-setup__header">
+          <p className="playlist-setup__kicker">SETUP / PLAYLIST</p>
+          <h1>전용 재생목록을 설정하고 있습니다</h1>
+          <p className="playlist-setup__description">
+            유튜브 계정에 ‘Neverwatchlater’ 재생목록을 만들고 동기화 대상으로
+            지정합니다.{' '}
+            <br className="playlist-setup__break" />
+            기본 ‘나중에 볼 동영상’ 재생목록은 사용하지 않습니다.
+          </p>
+        </header>
+
+        <ol className="playlist-setup__rail" aria-label="설정 진행 단계">
+          {STEPS.map((step, index) => {
+            const status = stepStatus[step.id];
+            const indexLabel = String(index + 1).padStart(2, '0');
+
+            return (
+              <li
+                key={`rail-${step.id}`}
+                className={`playlist-setup__rail-step playlist-setup__rail-step--${status}`}
+                aria-current={status === 'current' ? 'step' : undefined}
+              >
+                <span className="playlist-setup__rail-node" aria-hidden="true">
+                  <span className="playlist-setup__rail-spin" />
+                  {status === 'done' ? <CheckIcon /> : indexLabel}
+                </span>
+                <span className="playlist-setup__rail-label">{step.rail}</span>
+              </li>
+            );
+          })}
+        </ol>
 
         <ol className="playlist-setup__steps">
-          {STEPS.map((step) => (
-            <li key={step.id} className="playlist-setup__step utility-card">
-              <span className="type-body-strong playlist-setup__step-label">
-                {step.label}
-              </span>
-              <span
-                className={
-                  stepStatus[step.id] === 'failed'
-                    ? 'badge badge--warning'
-                    : 'badge badge--neutral'
-                }
+          {STEPS.filter((step) => step.id !== 'complete').map((step, index) => {
+            const status = stepStatus[step.id];
+
+            return (
+              <li
+                key={step.id}
+                className={`playlist-setup__step playlist-setup__step--${status}`}
               >
-                {STATUS_LABEL[stepStatus[step.id]]}
-              </span>
-            </li>
-          ))}
+                <span className="playlist-setup__index" aria-hidden="true">
+                  {String(index + 1).padStart(2, '0')}
+                </span>
+                <span className="playlist-setup__step-label">{step.label}</span>
+                <span className={`playlist-setup__badge playlist-setup__badge--${status}`}>
+                  <span className="playlist-setup__dot" aria-hidden="true" />
+                  {STATUS_LABEL[status]}
+                </span>
+              </li>
+            );
+          })}
         </ol>
 
         {setupState === 'progress' ? (
-          <p className="type-caption playlist-setup__inline" role="status">
+          <p className="playlist-setup__banner playlist-setup__banner--progress" role="status">
+            <span className="playlist-setup__dots" aria-hidden="true">
+              <span />
+              <span />
+              <span />
+            </span>
             재생목록을 만드는 중입니다… 잠시만 기다려 주세요.
           </p>
         ) : null}
 
         {setupState === 'failed' ? (
-          <div className="playlist-setup__result">
-            <p className="type-body playlist-setup__error">
-              재생목록 생성 또는 지정에 실패했습니다. 다시 시도해 주세요.
+          <div className="playlist-setup__result playlist-setup__result--failed" role="alert">
+            <p className="playlist-setup__result-title">
+              <span className="playlist-setup__result-mark" aria-hidden="true">
+                <AlertIcon />
+              </span>
+              재생목록 생성 또는 지정에 실패했습니다.
             </p>
             <button
               type="button"
-              className="btn-primary"
+              className="playlist-setup__action"
               onClick={() => changeState('progress')}
             >
+              <RetryIcon />
               재생목록 설정 재시도
             </button>
           </div>
         ) : null}
 
         {setupState === 'success' ? (
-          <div className="playlist-setup__result">
-            <p className="type-body playlist-setup__success">
+          <div className="playlist-setup__result playlist-setup__result--success">
+            <p className="playlist-setup__result-title">
+              <span className="playlist-setup__result-mark" aria-hidden="true">
+                <CheckIcon />
+              </span>
               ‘Neverwatchlater’ 재생목록이 동기화 대상으로 지정되었습니다.
             </p>
-            <Link to="/videos" className="btn-primary">
+            <Link to="/videos" className="playlist-setup__action">
               정리 목록으로 이동
+              <ArrowUpRight />
             </Link>
           </div>
         ) : null}
+
+        <StatePreview
+          options={SETUP_STATES}
+          value={setupState}
+          onChange={changeState}
+        />
       </div>
 
       {toast ? (
