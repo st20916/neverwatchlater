@@ -50,11 +50,21 @@ describe('VideoCard', () => {
     expect(screen.queryByText('방치 경고')).not.toBeInTheDocument();
   });
 
-  it('보관 상태 영상은 D-Day 판정에서 제외한다', () => {
+  it('보관 상태 영상은 D-Day 판정에서 제외하고 보관 해제 버튼을 표시한다', () => {
     renderCard({ ...baseVideo, isArchived: true });
 
     expect(screen.getByText('보관 중 · D-Day 제외')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '보관하기' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '보관 해제' })).toBeInTheDocument();
+    expect(screen.queryByText('방치 경고')).not.toBeInTheDocument();
+  });
+
+  it('썸네일을 클릭하면 바로 보기 핸들러를 호출한다', () => {
+    const onWatch = vi.fn();
+    renderCard(baseVideo, { onWatch });
+
+    fireEvent.click(screen.getByRole('button', { name: '테스트 영상 유튜브에서 보기' }));
+
+    expect(onWatch).toHaveBeenCalledWith(baseVideo);
   });
 
   it('요약 완료 상태에서는 3줄 요약을 표시한다', () => {
@@ -93,9 +103,13 @@ describe('VideoCard', () => {
   });
 
   it('썸네일 URL이 있으면 이미지를 표시하고 길이를 오버레이로 보여준다', () => {
-    renderCard({ ...baseVideo, thumbnailUrl: 'https://thumb.example/1.jpg' });
+    // 썸네일 이미지는 클릭 버튼(aria-label)이 이름을 담당하므로 alt=""인 장식용 이미지다.
+    const { container } = renderCard({
+      ...baseVideo,
+      thumbnailUrl: 'https://thumb.example/1.jpg',
+    });
 
-    const image = screen.getByRole('img', { name: baseVideo.title });
+    const image = container.querySelector('.video-card__thumbnail');
     expect(image).toHaveAttribute('src', 'https://thumb.example/1.jpg');
     expect(screen.getByText('12:34')).toBeInTheDocument();
   });
@@ -112,7 +126,7 @@ describe('VideoCard', () => {
   it('요청 처리 중에는 정리 액션을 비활성화한다', () => {
     renderCard(baseVideo, { pendingAction: 'delete' });
 
-    expect(screen.getByRole('button', { name: '▶ 바로 보기' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '보관하기' })).toBeDisabled();
     expect(screen.getByRole('button', { name: '나중에' })).toBeDisabled();
   });
 });

@@ -1,4 +1,4 @@
-export const DEFAULT_SORT = 'savedRecent';
+export const DEFAULT_SORT = 'savedOld';
 
 export const SORT_OPTIONS = [
   { value: 'savedRecent', label: '저장 경과 최신순' },
@@ -48,5 +48,12 @@ const COMPARATORS = {
 
 export const sortVideos = (videos, sortKey) => {
   const compare = COMPARATORS[sortKey] ?? COMPARATORS[DEFAULT_SORT];
-  return [...videos].sort(compare);
+
+  return [...videos].sort((a, b) => {
+    // 보관 영상은 D-Day 판정에서 빠진 "당장 정리할 필요 없는" 영상이므로, 어떤 정렬
+    // 기준이든 목록 맨 아래로 내린다(보관 탭 안에서는 전부 보관 영상이라 영향 없음).
+    if (!!a.isArchived !== !!b.isArchived) return a.isArchived ? 1 : -1;
+
+    return compare(a, b);
+  });
 };

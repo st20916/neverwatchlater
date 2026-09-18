@@ -35,16 +35,24 @@ const VideoCard = ({
       }
     >
       <div className="video-card__media">
-        {showThumbnail ? (
-          <img
-            className="video-card__thumbnail"
-            src={video.thumbnailUrl}
-            alt={video.title}
-            onError={() => setThumbnailFailed(true)}
-          />
-        ) : (
-          <MediaPlaceholder label="썸네일 없음" ratio="16/9" radius="sm" />
-        )}
+        {/* 썸네일 자체가 "바로 보기" 역할을 한다 — 클릭하면 유튜브 새 탭에서 재생된다. */}
+        <button
+          type="button"
+          className="video-card__media-button"
+          aria-label={`${video.title} 유튜브에서 보기`}
+          onClick={() => onWatch(video)}
+        >
+          {showThumbnail ? (
+            <img
+              className="video-card__thumbnail"
+              src={video.thumbnailUrl}
+              alt=""
+              onError={() => setThumbnailFailed(true)}
+            />
+          ) : (
+            <MediaPlaceholder label="썸네일 없음" ratio="16/9" radius="sm" />
+          )}
+        </button>
         {duration ? (
           <span className="video-card__duration">{duration}</span>
         ) : null}
@@ -80,14 +88,6 @@ const VideoCard = ({
         <div className="video-card__actions">
           <button
             type="button"
-            className="btn-primary"
-            disabled={isBusy}
-            onClick={() => onWatch(video)}
-          >
-            {pendingAction === 'watch' ? '처리 중…' : '▶ 바로 보기'}
-          </button>
-          <button
-            type="button"
             className="btn-pearl-capsule"
             disabled={isBusy}
             onClick={() => onLater(video)}
@@ -97,10 +97,14 @@ const VideoCard = ({
           <button
             type="button"
             className="btn-pearl-capsule"
-            disabled={isBusy || video.isArchived}
+            disabled={isBusy}
             onClick={() => onArchive(video)}
           >
-            {pendingAction === 'archive' ? '처리 중…' : '보관하기'}
+            {pendingAction === 'archive'
+              ? '처리 중…'
+              : video.isArchived
+                ? '보관 해제'
+                : '보관하기'}
           </button>
           <button
             type="button"

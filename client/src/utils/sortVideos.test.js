@@ -6,10 +6,39 @@ const video = (overrides) => ({
   videoId: 'v',
   savedAt: '2026-01-01T00:00:00.000Z',
   durationSeconds: 100,
+  isArchived: false,
   ...overrides,
 });
 
 describe('sortVideos', () => {
+  it('보관 영상은 정렬 기준과 무관하게 항상 목록 맨 아래로 내려간다', () => {
+    // 보관 영상이 가장 오래됐고(오래된 순 1위) 가장 짧지만(짧은 순 1위) 맨 아래여야 한다.
+    const archived = video({
+      videoId: 'archived',
+      savedAt: '2020-01-01T00:00:00.000Z',
+      durationSeconds: 1,
+      isArchived: true,
+    });
+    const older = video({ videoId: 'older', savedAt: '2026-01-01T00:00:00.000Z' });
+    const newer = video({ videoId: 'newer', savedAt: '2026-06-01T00:00:00.000Z' });
+
+    expect(sortVideos([archived, newer, older], 'savedOld').map((v) => v.videoId)).toEqual([
+      'older',
+      'newer',
+      'archived',
+    ]);
+    expect(sortVideos([archived, older, newer], 'savedRecent').map((v) => v.videoId)).toEqual([
+      'newer',
+      'older',
+      'archived',
+    ]);
+    expect(sortVideos([archived, older, newer], 'durationShort').map((v) => v.videoId)).toEqual([
+      'older',
+      'newer',
+      'archived',
+    ]);
+  });
+
   it('savedRecent는 저장 시각이 늦은(최근) 영상을 먼저 정렬한다 — 같은 날이어도 시:분 단위까지 구분한다', () => {
     const earlier = video({ videoId: 'earlier', savedAt: '2026-01-15T08:00:00.000Z' });
     const later = video({ videoId: 'later', savedAt: '2026-01-15T20:00:00.000Z' });

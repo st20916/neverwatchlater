@@ -2,7 +2,11 @@ import { assertYoutubeScope, getValidAccessToken } from '../services/googleSessi
 import { getPlaylistStatus } from '../services/playlist.service.js';
 import { getStoredVideos, syncVideos } from '../services/videoSync.service.js';
 import { processPendingSummaries } from '../services/videoSummary.service.js';
-import { deleteVideo as deleteVideoAction } from '../services/videoActions.service.js';
+import {
+  deleteVideo as deleteVideoAction,
+  resetSavedAt,
+  setArchived,
+} from '../services/videoActions.service.js';
 import { subscribe } from '../services/summaryEvents.js';
 
 async function resolvePlaylistId(googleId) {
@@ -116,6 +120,56 @@ export const deleteVideo = async (req, res, next) => {
     const result = await deleteVideoAction({
       googleId,
       accessToken,
+      videoId: req.params.videoId,
+    });
+
+    res.status(200).json(result);
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * PATCH /api/videos/:videoId/archive
+ * "보관하기"/"보관 해제" — body의 isArchived 값으로 보관 상태를 바꾼다.
+ * 유튜브 재생목록은 건드리지 않으므로 Google 액세스 토큰이 필요 없다(PRD 4.3).
+ */
+export const updateArchiveState = async (req, res, next) => {
+  try {
+    const googleId = req.session.user.googleId;
+    const { isArchived } = req.body ?? {};
+
+    if (typeof isArchived !== 'boolean') {
+      const err = new Error('isArchived 값은 true 또는 false여야 합니다.');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    const result = await setArchived({ googleId, videoId: req.params.videoId, isArchived });
+
+    res.status(200).json(result);
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * PATCH /api/videos/:videoId/reset-dday
+ * "나중에" — 저장 일자를 현재 시각으로 초기화해 방치 경고를 리셋한다. 유튜브 쪽 "추가된
+ * 시각"도 함께 지금으로 맞추기 위해 재생목록 항목을 재추가하므로 YouTube 권한이 필요하다.
+ */
+export const resetVideoDday = async (req, res, next) => {
+  try {
+    const googleId = req.session.user.googleId;
+
+    assertYoutubeScope(req);
+    const accessToken = await getValidAccessToken(req);
+    const playlistId = await resolvePlaylistId(googleId);
+
+    const result = await resetSavedAt({
+      googleId,
+      accessToken,
+      playlistId,
       videoId: req.params.videoId,
     });
 

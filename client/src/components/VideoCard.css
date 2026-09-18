@@ -17,6 +17,22 @@
   position: relative;
 }
 
+/* 썸네일을 감싸는 클릭 영역. 버튼 기본 스타일을 지워 기존 썸네일 모양을 그대로 유지한다. */
+.video-card__media-button {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-radius: var(--rounded-sm);
+}
+
+.video-card__media-button:focus-visible {
+  outline: 2px solid var(--color-primary-focus);
+  outline-offset: 2px;
+}
+
 .video-card__thumbnail {
   width: 100%;
   aspect-ratio: 16 / 9;

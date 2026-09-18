@@ -44,6 +44,31 @@ export async function deleteVideo(videoId) {
 }
 
 /**
+ * "보관하기"/"보관 해제" — 유튜브 재생목록은 건드리지 않고 D-Day 판정 대상에서만 빼거나
+ * 다시 넣는다.
+ */
+export async function setVideoArchived(videoId, isArchived) {
+  const res = await fetch(`${API_BASE_URL}/api/videos/${videoId}/archive`, {
+    method: 'PATCH',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ isArchived }),
+  });
+  return parseResponse(res, '보관 상태를 변경하지 못했습니다.'); // { video }
+}
+
+/**
+ * "나중에" — 저장 일자를 현재 시각으로 초기화해 방치 경고(D-Day)를 리셋한다.
+ */
+export async function resetVideoDday(videoId) {
+  const res = await fetch(`${API_BASE_URL}/api/videos/${videoId}/reset-dday`, {
+    method: 'PATCH',
+    credentials: 'include',
+  });
+  return parseResponse(res, '저장 일자를 초기화하지 못했습니다.'); // { video }
+}
+
+/**
  * 백그라운드 AI 요약이 영상 하나씩 끝날 때마다 실시간으로 전달받는다(SSE). 새로고침 없이
  * 화면을 갱신하기 위한 용도 — onUpdate는 { videoId, summaryStatus, summary }를 받는다.
  * @returns {() => void} 구독 해제 함수

@@ -4,6 +4,8 @@ import { Link } from 'react-router-dom';
 import {
   deleteVideo,
   fetchVideos,
+  resetVideoDday,
+  setVideoArchived,
   subscribeToSummaryUpdates,
   syncVideosNow,
 } from '../api/videoApi.js';
@@ -11,6 +13,8 @@ import Pagination from '../components/Pagination.jsx';
 import StatusNotice from '../components/StatusNotice.jsx';
 import Toast from '../components/Toast.jsx';
 import VideoCard from '../components/VideoCard.jsx';
+import VideoTabs from '../components/VideoTabs.jsx';
+import { getDdayState } from '../utils/dday.js';
 import { DEFAULT_SORT, SORT_OPTIONS, sortVideos } from '../utils/sortVideos.js';
 
 import './VideoListPage.css';
@@ -21,14 +25,28 @@ const SYNC_ERROR_MESSAGE =
 // 한 페이지에 2x2 형식으로 영상 4개를 보여준다.
 const PAGE_SIZE = 4;
 
-// 바로 보기/안볼래요를 제외한 나머지 액션(나중에/보관하기)은 PRD 4번(정리 액션) 파트에서
-// 실제 동작을 연결한다. 이 화면에서는 자리만 배치하고 안내 토스트만 띄운다.
-const PLACEHOLDER_TOAST = {
-  tone: 'success',
-  message: '이 기능은 아직 연결되지 않았습니다. 곧 제공될 예정입니다.',
+const DELETE_ERROR_MESSAGE = '영상을 삭제하지 못했습니다. 다시 시도해 주세요.';
+const LATER_ERROR_MESSAGE = '저장 일자를 초기화하지 못했습니다. 다시 시도해 주세요.';
+const ARCHIVE_ERROR_MESSAGE = '보관 상태를 변경하지 못했습니다. 다시 시도해 주세요.';
+
+// 탭별 영상 필터. '정리 대상'은 D-Day가 D+0 이상인 방치 영상이며, 보관 영상은
+// getDdayState가 방치 판정에서 제외하므로 자동으로 빠진다.
+const TAB_FILTERS = {
+  all: () => true,
+  cleanup: (video) => getDdayState(video)?.isNeglected === true,
+  archived: (video) => Boolean(video.isArchived),
 };
 
-const DELETE_ERROR_MESSAGE = '영상을 삭제하지 못했습니다. 다시 시도해 주세요.';
+const TAB_LABELS = {
+  all: '전체',
+  cleanup: '정리 대상',
+  archived: '보관',
+};
+
+const EMPTY_TAB_MESSAGE = {
+  cleanup: '7일 이상 방치된 영상이 없습니다.',
+  archived: '보관한 영상이 없습니다.',
+};
 
 // VideoCard.css의 .video-card--removing 트랜지션 시간(0.3s)과 맞춰, 페이드아웃 애니메이션이
 // 끝난 뒤에 목록에서 실제로 제거한다.
@@ -53,7 +71,9 @@ const VideoListPage = () => {
   const [toast, setToast] = useState(null);
   const [page, setPage] = useState(1);
   const [sortKey, setSortKey] = useState(DEFAULT_SORT);
-  const [pendingDeleteIds, setPendingDeleteIds] = useState(() => new Set());
+  const [activeTab, setActiveTab] = useState('all');
+  // videoId → 진행 중인 액션('delete' | 'archive' | 'later'). 카드 버튼 로딩 표시에 쓴다.
+  const [pendingActions, setPendingActions] = useState(() => new Map());
   const [removingIds, setRemovingIds] = useState(() => new Set());
 
   const applyResult = (result) => {
@@ -63,7 +83,14 @@ const VideoListPage = () => {
     setPage(1);
   };
 
-  const sortedVideos = sortVideos(videos, sortKey);
+  const tabs = Object.keys(TAB_FILTERS).map((id) => ({
+    id,
+    label: TAB_LABELS[id],
+    count: videos.filter(TAB_FILTERS[id]).length,
+  }));
+
+  const tabVideos = videos.filter(TAB_FILTERS[activeTab]);
+  const sortedVideos = sortVideos(tabVideos, sortKey);
   const totalPages = Math.max(1, Math.ceil(sortedVideos.length / PAGE_SIZE));
   const pagedVideos = sortedVideos.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
@@ -71,6 +98,29 @@ const VideoListPage = () => {
     setSortKey(e.target.value);
     setPage(1);
   };
+
+  const handleTabChange = (tabId) => {
+    setActiveTab(tabId);
+    setPage(1);
+  };
+
+  const startPending = (videoId, action) =>
+    setPendingActions((prev) => new Map(prev).set(videoId, action));
+
+  const endPending = (videoId) =>
+    setPendingActions((prev) => {
+      const next = new Map(prev);
+      next.delete(videoId);
+      return next;
+    });
+
+  // 서버가 돌려준 갱신된 영상 하나만 목록에 반영한다(정렬/탭 분류는 렌더 시 다시 계산됨).
+  const applyVideoUpdate = (updatedVideo) =>
+    setVideos((prev) =>
+      prev.map((video) =>
+        video.videoId === updatedVideo.videoId ? { ...video, ...updatedVideo } : video,
+      ),
+    );
 
   // 동기화 등으로 videos가 줄어들어 현재 페이지가 범위를 벗어나면 마지막 페이지로 보정한다.
   useEffect(() => {
@@ -142,7 +192,7 @@ const VideoListPage = () => {
   // "안볼래요" — 유튜브 재생목록과 로컬 목록 양쪽에서 영상을 제거한다. 성공하면 카드를
   // 페이드아웃시킨 뒤(REMOVE_ANIMATION_MS) 서버가 돌려준 최신 목록으로 교체한다.
   const handleDelete = async (video) => {
-    setPendingDeleteIds((prev) => new Set(prev).add(video.videoId));
+    startPending(video.videoId, 'delete');
 
     try {
       const result = await deleteVideo(video.videoId);
@@ -159,15 +209,44 @@ const VideoListPage = () => {
     } catch {
       setToast({ tone: 'error', message: DELETE_ERROR_MESSAGE });
     } finally {
-      setPendingDeleteIds((prev) => {
-        const next = new Set(prev);
-        next.delete(video.videoId);
-        return next;
-      });
+      endPending(video.videoId);
     }
   };
 
-  const showPlaceholder = () => setToast(PLACEHOLDER_TOAST);
+  // "나중에" — 저장 일자를 현재 시각으로 초기화해 방치 경고(D-Day)를 리셋한다.
+  const handleLater = async (video) => {
+    startPending(video.videoId, 'later');
+
+    try {
+      const { video: updated } = await resetVideoDday(video.videoId);
+      applyVideoUpdate(updated);
+      setToast({ tone: 'success', message: '저장 일자를 초기화했습니다.' });
+    } catch {
+      setToast({ tone: 'error', message: LATER_ERROR_MESSAGE });
+    } finally {
+      endPending(video.videoId);
+    }
+  };
+
+  // "보관하기"/"보관 해제" — 보관하면 D-Day 판정에서 빠지고 보관 탭으로, 해제하면
+  // 다시 원래 탭으로 돌아간다(유튜브 재생목록은 건드리지 않는다).
+  const handleArchive = async (video) => {
+    const nextArchived = !video.isArchived;
+    startPending(video.videoId, 'archive');
+
+    try {
+      const { video: updated } = await setVideoArchived(video.videoId, nextArchived);
+      applyVideoUpdate(updated);
+      setToast({
+        tone: 'success',
+        message: nextArchived ? '영상을 보관했습니다.' : '보관을 해제했습니다.',
+      });
+    } catch {
+      setToast({ tone: 'error', message: ARCHIVE_ERROR_MESSAGE });
+    } finally {
+      endPending(video.videoId);
+    }
+  };
 
   if (status === 'loading') {
     return (
@@ -286,6 +365,8 @@ const VideoListPage = () => {
           />
         ) : null}
 
+        <VideoTabs tabs={tabs} activeTab={activeTab} onChange={handleTabChange} />
+
         {videos.length === 0 ? (
           <div className="video-list__empty utility-card">
             <p className="type-body-strong">정리할 영상이 없습니다</p>
@@ -294,6 +375,10 @@ const VideoListPage = () => {
               동기화에 카드로 표시됩니다.
             </p>
           </div>
+        ) : tabVideos.length === 0 ? (
+          <div className="video-list__empty utility-card">
+            <p className="type-body-strong">{EMPTY_TAB_MESSAGE[activeTab]}</p>
+          </div>
         ) : (
           <>
             <ul className="video-list__items">
@@ -301,11 +386,11 @@ const VideoListPage = () => {
                 <li key={video.videoId}>
                   <VideoCard
                     video={video}
-                    pendingAction={pendingDeleteIds.has(video.videoId) ? 'delete' : null}
+                    pendingAction={pendingActions.get(video.videoId) ?? null}
                     isRemoving={removingIds.has(video.videoId)}
                     onWatch={handleWatch}
-                    onLater={showPlaceholder}
-                    onArchive={showPlaceholder}
+                    onLater={handleLater}
+                    onArchive={handleArchive}
                     onDelete={handleDelete}
                   />
                 </li>

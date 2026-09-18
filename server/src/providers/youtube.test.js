@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { afterEach, beforeEach, mock, test } from 'node:test';
 
 import {
+  addPlaylistItem,
   createPlaylist,
   deletePlaylistItem,
   findPlaylistByTitle,
@@ -203,6 +204,44 @@ test('deletePlaylistItem은 실패하면 youtubeStatus를 담은 에러를 던�
     () => deletePlaylistItem('token', 'playlistItem-1'),
     (err) => {
       assert.equal(err.youtubeStatus, 404);
+      return true;
+    }
+  );
+});
+
+test('addPlaylistItem은 재생목록에 영상을 추가하고 새 항목 id와 publishedAt을 반환한다', async () => {
+  let capturedUrl;
+  let capturedBody;
+  globalThis.fetch = mock.fn(async (url, options) => {
+    capturedUrl = url;
+    capturedBody = JSON.parse(options.body);
+    return jsonResponse(200, {
+      id: 'new-playlist-item-1',
+      snippet: { playlistId: 'PL1', publishedAt: '2026-09-18T12:00:00.000Z' },
+    });
+  });
+
+  const result = await addPlaylistItem('token', 'PL1', 'video-1');
+
+  assert.ok(capturedUrl.includes('/playlistItems?part=snippet'));
+  assert.deepEqual(capturedBody, {
+    snippet: { playlistId: 'PL1', resourceId: { kind: 'youtube#video', videoId: 'video-1' } },
+  });
+  assert.deepEqual(result, {
+    playlistItemId: 'new-playlist-item-1',
+    publishedAt: '2026-09-18T12:00:00.000Z',
+  });
+});
+
+test('addPlaylistItem은 실패하면 youtubeStatus를 담은 에러를 던진다', async () => {
+  globalThis.fetch = mock.fn(async () =>
+    jsonResponse(403, { error: { message: '권한이 없습니다.' } })
+  );
+
+  await assert.rejects(
+    () => addPlaylistItem('token', 'PL1', 'video-1'),
+    (err) => {
+      assert.equal(err.youtubeStatus, 403);
       return true;
     }
   );

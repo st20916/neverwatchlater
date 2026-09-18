@@ -55,3 +55,27 @@ test('DELETE /api/videos/:videoId는 로그인하지 않으면 401을 반환한�
     assert.equal(data.message, '로그인이 필요합니다.');
   });
 });
+
+test('PATCH /api/videos/:videoId/archive는 로그인하지 않으면 401을 반환한다', async () => {
+  await withServer(async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/api/videos/v1/archive`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ isArchived: true }),
+    });
+    const data = await res.json();
+
+    assert.equal(res.status, 401);
+    assert.equal(data.message, '로그인이 필요합니다.');
+  });
+});
+
+test('PATCH /api/videos/:videoId/reset-dday는 로그인하지 않으면 401을 반환한다', async () => {
+  await withServer(async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/api/videos/v1/reset-dday`, { method: 'PATCH' });
+    const data = await res.json();
+
+    assert.equal(res.status, 401);
+    assert.equal(data.message, '로그인이 필요합니다.');
+  });
+});

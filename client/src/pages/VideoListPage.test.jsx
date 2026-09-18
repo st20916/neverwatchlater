@@ -5,6 +5,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   deleteVideo,
   fetchVideos,
+  resetVideoDday,
+  setVideoArchived,
   subscribeToSummaryUpdates,
   syncVideosNow,
 } from '../api/videoApi.js';
@@ -14,6 +16,8 @@ vi.mock('../api/videoApi.js', () => ({
   fetchVideos: vi.fn(),
   syncVideosNow: vi.fn(),
   deleteVideo: vi.fn(),
+  resetVideoDday: vi.fn(),
+  setVideoArchived: vi.fn(),
   subscribeToSummaryUpdates: vi.fn(() => () => {}),
 }));
 
@@ -48,17 +52,19 @@ describe('VideoListPage', () => {
     fetchVideos.mockReset();
     syncVideosNow.mockReset();
     deleteVideo.mockReset();
+    resetVideoDday.mockReset();
+    setVideoArchived.mockReset();
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  it('기본 정렬(저장 경과 최신순)은 최근 저장된 영상을 먼저 표시한다', async () => {
+  it('기본 정렬(저장 오래된 순)은 오래 방치된 영상을 먼저 표시한다', async () => {
     fetchVideos.mockResolvedValue({
       videos: [
-        makeVideo({ videoId: 'old', title: '오래된 저장', savedAt: daysAgo(20) }),
         makeVideo({ videoId: 'recent', title: '최근 저장', savedAt: daysAgo(1) }),
+        makeVideo({ videoId: 'old', title: '오래된 저장', savedAt: daysAgo(20) }),
       ],
       lastSyncedAt: '2026-09-16T00:00:00.000Z',
       synced: true,
@@ -68,14 +74,14 @@ describe('VideoListPage', () => {
     renderPage();
 
     const titles = await screen.findAllByRole('heading', { level: 3 });
-    expect(titles[0].textContent).toBe('최근 저장');
+    expect(titles[0].textContent).toBe('오래된 저장');
   });
 
-  it('정렬을 저장 경과 오랜순으로 바꾸면 오래 방치된 영상이 먼저 표시된다', async () => {
+  it('정렬을 저장 경과 최신순으로 바꾸면 최근 저장된 영상이 먼저 표시된다', async () => {
     fetchVideos.mockResolvedValue({
       videos: [
-        makeVideo({ videoId: 'recent', title: '최근 저장', savedAt: daysAgo(1) }),
         makeVideo({ videoId: 'old', title: '오래된 저장', savedAt: daysAgo(20) }),
+        makeVideo({ videoId: 'recent', title: '최근 저장', savedAt: daysAgo(1) }),
       ],
       lastSyncedAt: '2026-09-16T00:00:00.000Z',
       synced: true,
@@ -86,11 +92,11 @@ describe('VideoListPage', () => {
     await screen.findAllByRole('heading', { level: 3 });
 
     fireEvent.change(screen.getByLabelText('정렬'), {
-      target: { value: 'savedOld' },
+      target: { value: 'savedRecent' },
     });
 
     const titles = await screen.findAllByRole('heading', { level: 3 });
-    expect(titles[0].textContent).toBe('오래된 저장');
+    expect(titles[0].textContent).toBe('최근 저장');
   });
 
   it('같은 날 저장된 영상도 저장 시각(시:분) 기준으로 정확히 정렬된다', async () => {
@@ -117,17 +123,17 @@ describe('VideoListPage', () => {
 
     renderPage();
 
-    // 기본 정렬(최신순)에서는 나중에 저장된 영상이 먼저 나와야 한다.
+    // 기본 정렬(오래된 순)에서는 먼저 저장된 영상이 위에 나와야 한다.
     expect((await screen.findAllByRole('heading', { level: 3 }))[0].textContent).toBe(
-      '나중 저장',
+      '먼저 저장',
     );
 
     fireEvent.change(screen.getByLabelText('정렬'), {
-      target: { value: 'savedOld' },
+      target: { value: 'savedRecent' },
     });
 
     expect((await screen.findAllByRole('heading', { level: 3 }))[0].textContent).toBe(
-      '먼저 저장',
+      '나중 저장',
     );
   });
 
@@ -221,22 +227,105 @@ describe('VideoListPage', () => {
     expect(await screen.findByText('동기화를 완료했습니다.')).toBeInTheDocument();
   });
 
-  it('나중에 버튼을 누르면 아직 연결되지 않았다는 안내를 표시한다', async () => {
+  it('나중에 버튼을 누르면 저장 일자가 초기화되어 방치 경고가 사라진다', async () => {
     fetchVideos.mockResolvedValue({
-      videos: [makeVideo()],
+      videos: [makeVideo({ videoId: 'v1', savedAt: daysAgo(20) })],
+      lastSyncedAt: null,
+      synced: true,
+      syncFailed: false,
+    });
+    resetVideoDday.mockResolvedValue({
+      video: makeVideo({ videoId: 'v1', savedAt: daysAgo(0) }),
+    });
+
+    renderPage();
+    await screen.findByText('영상 제목');
+    expect(screen.getByText('방치 경고')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '나중에' }));
+
+    expect(await screen.findByText('저장 일자를 초기화했습니다.')).toBeInTheDocument();
+    expect(resetVideoDday).toHaveBeenCalledWith('v1');
+    expect(screen.queryByText('방치 경고')).not.toBeInTheDocument();
+  });
+
+  it('보관하기 버튼을 누르면 보관 탭으로 이동하고 보관 해제로 되돌릴 수 있다', async () => {
+    fetchVideos.mockResolvedValue({
+      videos: [makeVideo({ videoId: 'v1', title: '보관할 영상', isArchived: false })],
+      lastSyncedAt: null,
+      synced: true,
+      syncFailed: false,
+    });
+    setVideoArchived.mockImplementation(async (videoId, isArchived) => ({
+      video: makeVideo({ videoId, title: '보관할 영상', isArchived }),
+    }));
+
+    renderPage();
+    await screen.findByText('보관할 영상');
+
+    fireEvent.click(screen.getByRole('button', { name: '보관하기' }));
+
+    expect(await screen.findByText('영상을 보관했습니다.')).toBeInTheDocument();
+    expect(setVideoArchived).toHaveBeenCalledWith('v1', true);
+    // 보관 탭 개수가 1로 올라가고, 카드 버튼은 '보관 해제'로 바뀐다.
+    expect(await screen.findByRole('button', { name: '보관 해제' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '보관 해제' }));
+
+    expect(await screen.findByText('보관을 해제했습니다.')).toBeInTheDocument();
+    expect(setVideoArchived).toHaveBeenLastCalledWith('v1', false);
+  });
+
+  it('탭을 전환하면 해당 조건의 영상만 보여주고 개수를 표시한다', async () => {
+    fetchVideos.mockResolvedValue({
+      videos: [
+        makeVideo({ videoId: 'v1', title: '방치 영상', savedAt: daysAgo(20) }),
+        makeVideo({ videoId: 'v2', title: '최근 영상', savedAt: daysAgo(1) }),
+        makeVideo({ videoId: 'v3', title: '보관 영상', savedAt: daysAgo(30), isArchived: true }),
+      ],
       lastSyncedAt: null,
       synced: true,
       syncFailed: false,
     });
 
     renderPage();
-    await screen.findByText('영상 제목');
+    await screen.findByText('방치 영상');
 
-    fireEvent.click(screen.getByRole('button', { name: '나중에' }));
+    // 전체 3 / 정리 대상 1(보관 영상은 방치 판정 제외) / 보관 1
+    expect(screen.getByRole('button', { name: '전체 3' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '정리 대상 1' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '보관 1' })).toBeInTheDocument();
 
-    expect(
-      await screen.findByText('이 기능은 아직 연결되지 않았습니다. 곧 제공될 예정입니다.'),
-    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '정리 대상 1' }));
+
+    expect(screen.getByText('방치 영상')).toBeInTheDocument();
+    expect(screen.queryByText('최근 영상')).not.toBeInTheDocument();
+    expect(screen.queryByText('보관 영상')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '보관 1' }));
+
+    expect(screen.getByText('보관 영상')).toBeInTheDocument();
+    expect(screen.queryByText('방치 영상')).not.toBeInTheDocument();
+  });
+
+  it('전체 탭의 기본 정렬에서 보관 영상은 가장 아래에 배치된다', async () => {
+    fetchVideos.mockResolvedValue({
+      videos: [
+        // 보관 영상이 가장 오래 저장됐지만(오래된 순 1위) 보관 상태라 맨 아래로 내려간다.
+        makeVideo({ videoId: 'v1', title: '보관 영상', savedAt: daysAgo(90), isArchived: true }),
+        makeVideo({ videoId: 'v2', title: '오래된 영상', savedAt: daysAgo(20) }),
+        makeVideo({ videoId: 'v3', title: '최근 영상', savedAt: daysAgo(1) }),
+      ],
+      lastSyncedAt: null,
+      synced: true,
+      syncFailed: false,
+    });
+
+    renderPage();
+    await screen.findByText('보관 영상');
+
+    const titles = screen.getAllByRole('heading', { level: 3 }).map((el) => el.textContent);
+    expect(titles).toEqual(['오래된 영상', '최근 영상', '보관 영상']);
   });
 
   it('안볼래요 버튼을 누르면 삭제 API를 호출하고 성공하면 목록에서 사라진다', async () => {
@@ -281,7 +370,7 @@ describe('VideoListPage', () => {
     expect(screen.getByText('삭제 실패 영상')).toBeInTheDocument();
   });
 
-  it('바로 보기 버튼을 누르면 유튜브 영상을 새 탭으로 연다', async () => {
+  it('썸네일을 클릭하면 유튜브 영상을 새 탭으로 연다', async () => {
     fetchVideos.mockResolvedValue({
       videos: [makeVideo({ videoId: 'abc123' })],
       lastSyncedAt: null,
@@ -293,7 +382,7 @@ describe('VideoListPage', () => {
     renderPage();
     await screen.findByText('영상 제목');
 
-    fireEvent.click(screen.getByRole('button', { name: '▶ 바로 보기' }));
+    fireEvent.click(screen.getByRole('button', { name: '영상 제목 유튜브에서 보기' }));
 
     expect(openSpy).toHaveBeenCalledWith(
       'https://www.youtube.com/watch?v=abc123',
@@ -356,8 +445,9 @@ describe('VideoListPage', () => {
 
   it('영상이 4개를 넘으면 한 페이지에 4개씩 보여주고 페이지를 이동할 수 있다', async () => {
     fetchVideos.mockResolvedValue({
+      // 기본 정렬이 "저장 오래된 순"이므로 v0이 가장 오래된 영상이어야 첫 페이지에 온다.
       videos: Array.from({ length: 9 }, (_, i) =>
-        makeVideo({ videoId: `v${i}`, title: `영상 ${i}`, savedAt: daysAgo(i + 1) }),
+        makeVideo({ videoId: `v${i}`, title: `영상 ${i}`, savedAt: daysAgo(9 - i) }),
       ),
       lastSyncedAt: null,
       synced: true,

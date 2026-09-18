@@ -170,6 +170,32 @@ export async function deletePlaylistItem(accessToken, playlistItemId) {
 }
 
 /**
+ * 재생목록에 영상을 새로 추가한다("나중에" 액션 — 기존 항목을 지우고 새로 추가해
+ * 유튜브 쪽 "추가된 시각"(publishedAt)도 지금 시각으로 갱신되게 한다).
+ * publishedAt은 서버가 부여하는 읽기 전용 값이라 API로 직접 지정할 수 없다 — 새 항목을
+ * 만들어야만 "방금 추가됨" 상태가 된다.
+ * @returns {Promise<{ playlistItemId: string, publishedAt: string }>}
+ */
+export async function addPlaylistItem(accessToken, playlistId, videoId) {
+  const body = {
+    snippet: {
+      playlistId,
+      resourceId: { kind: 'youtube#video', videoId },
+    },
+  };
+
+  const created = await youtubeFetch(accessToken, '/playlistItems?part=snippet', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+
+  return {
+    playlistItemId: created.id,
+    publishedAt: created.snippet?.publishedAt ?? new Date().toISOString(),
+  };
+}
+
+/**
  * 여러 영상의 길이(초)를 한 번에 조회한다(한 번에 최대 50개씩 배치 조회).
  * @returns {Promise<Record<string, number | null>>} videoId → durationSeconds
  */
