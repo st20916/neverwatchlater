@@ -33,14 +33,21 @@ const PlaylistSetupPage = () => {
   // 'progress' | 'success' | 'failed'
   const [setupState, setSetupState] = useState('progress');
   // 실패가 발생한 단계. 재시도 시 어디서부터 다시 시작할지 판단하는 데 사용한다.
-  // 'insufficient_scope'는 로그인은 되어 있지만 유튜브 권한 동의가 없는 경우
-  // (server가 reason: 'insufficient_scope'로 응답, docs/product-specs/auth.md 1절
-  // 마이그레이션 안내 참고) — 재시도로는 해결되지 않고 재로그인(재동의)이 필요하다.
-  const [failedStep, setFailedStep] = useState(null); // 'account' | 'playlist' | 'insufficient_scope' | null
+  // - 'insufficient_scope': 로그인은 되어 있지만 유튜브 권한 동의가 없는 경우
+  //   (server가 reason: 'insufficient_scope'로 응답, docs/product-specs/auth.md 1절
+  //   마이그레이션 안내 참고) — 재시도로는 해결되지 않고 재로그인(재동의)이 필요하다.
+  // - 'no_channel': 로그인 계정에 YouTube 채널이 없는 경우(server가
+  //   reason: 'no_channel'로 응답, docs/troubleshooting.md 3절 참고) — 채널을 먼저
+  //   만들어야 하며, 채널 생성은 API로 대신할 수 없어 YouTube 채널 생성 화면으로
+  //   안내한다.
+  const [failedStep, setFailedStep] = useState(null); // 'account' | 'playlist' | 'insufficient_scope' | 'no_channel' | null
   const [user, setUser] = useState(null);
   const [playlist, setPlaylist] = useState(null);
   const [errorMessage, setErrorMessage] = useState(null);
   const [toast, setToast] = useState(null);
+  // 'no_channel' 확인 다이얼로그를 한 번 확인/취소하고 나면, 같은 실패 상태에서
+  // 다이얼로그를 다시 띄우지 않고 대신 재시도 버튼을 보여준다.
+  const [channelPromptDismissed, setChannelPromptDismissed] = useState(false);
 
   const runPlaylistSetup = useCallback(() => {
     setSetupState('progress');
@@ -59,6 +66,15 @@ const PlaylistSetupPage = () => {
         if (err.reason === 'insufficient_scope') {
           // 유튜브 권한 동의가 없는 세션 — 재시도가 아니라 재로그인이 필요하다.
           setFailedStep('insufficient_scope');
+          setSetupState('failed');
+          setToast({ tone: 'error', message: err.message });
+          return;
+        }
+
+        if (err.reason === 'no_channel') {
+          // YouTube 채널이 없는 계정 — 채널 생성 화면으로 안내해야 한다.
+          setChannelPromptDismissed(false);
+          setFailedStep('no_channel');
           setSetupState('failed');
           setToast({ tone: 'error', message: err.message });
           return;
@@ -120,6 +136,20 @@ const PlaylistSetupPage = () => {
     navigate('/');
   };
 
+  // YouTube 채널이 없는 경우: 채널 생성은 API로 대신할 수 없으므로(docs/troubleshooting.md
+  // 3절), YouTube의 채널 생성 화면을 새 탭으로 열어 안내한다.
+  const showChannelConfirm =
+    setupState === 'failed' && failedStep === 'no_channel' && !channelPromptDismissed;
+
+  const handleConfirmCreateChannel = () => {
+    window.open('https://www.youtube.com/create_channel', '_blank', 'noopener,noreferrer');
+    setChannelPromptDismissed(true);
+  };
+
+  const handleCancelCreateChannel = () => {
+    navigate('/');
+  };
+
   const stepStatus = {
     account: user ? 'done' : failedStep === 'account' ? 'failed' : 'current',
     playlist:
@@ -127,7 +157,9 @@ const PlaylistSetupPage = () => {
         ? 'done'
         : !user
           ? 'waiting'
-          : failedStep === 'playlist' || failedStep === 'insufficient_scope'
+          : failedStep === 'playlist' ||
+              failedStep === 'insufficient_scope' ||
+              failedStep === 'no_channel'
             ? 'failed'
             : 'current',
     target: setupState === 'success' ? 'done' : 'waiting',
@@ -187,6 +219,18 @@ const PlaylistSetupPage = () => {
           </div>
         ) : null}
 
+        {setupState === 'failed' && failedStep === 'no_channel' && channelPromptDismissed ? (
+          <div className="playlist-setup__result">
+            <p className="type-body playlist-setup__error">
+              {errorMessage ||
+                'YouTube 채널이 없어 재생목록을 만들 수 없습니다. 채널을 먼저 만든 뒤 다시 시도해주세요.'}
+            </p>
+            <button type="button" className="btn-primary" onClick={retry}>
+              채널 생성 후 재생목록 설정 재시도
+            </button>
+          </div>
+        ) : null}
+
         {setupState === 'success' ? (
           <div className="playlist-setup__result">
             <p className="type-body playlist-setup__success">
@@ -216,6 +260,17 @@ const PlaylistSetupPage = () => {
           cancelLabel="아니오"
           onConfirm={handleConfirmLogin}
           onCancel={handleCancelLogin}
+        />
+      ) : null}
+
+      {showChannelConfirm ? (
+        <ConfirmDialog
+          title="YouTube 채널 필요"
+          description="YouTube 채널이 없습니다. 채널을 만드시겠습니까?"
+          confirmLabel="예"
+          cancelLabel="아니오"
+          onConfirm={handleConfirmCreateChannel}
+          onCancel={handleCancelCreateChannel}
         />
       ) : null}
     </section>

@@ -127,3 +127,55 @@ API(`GET /youtube/v3/playlists`)를 호출하면 403이 발생한다.
   추가한다.
 - [ ] YouTube(또는 다른 Google API)를 호출하는 새 기능을 만들 때는 실제 API를 호출하기 전에
   세션 scope를 검증해, 모호한 502 대신 명확한 재로그인 안내를 내려준다.
+
+---
+
+## 3. YouTube API `404 Channel not found`
+
+### 증상
+
+`POST /api/playlists/setup` 호출 시 서버 로그에 다음과 같은 에러가 남고 클라이언트는 502를 받는다.
+
+```
+Error: Channel not found.
+    at youtubeFetch (.../server/src/providers/youtube.js:33:17)
+    at async Module.findPlaylistByTitle (.../server/src/providers/youtube.js:58:18)
+    at async ensureDedicatedPlaylist (.../server/src/services/playlist.service.js:40:17)
+    at async setupPlaylist (.../server/src/controllers/playlist.controller.js:19:20) {
+  statusCode: 502,
+  youtubeStatus: 404
+}
+POST /api/playlists/setup 502 437.700 ms - 698
+```
+
+### 원인
+
+`playlists.list`를 `mine=true`로 호출하면 YouTube는 **로그인한 Google 계정에 연결된 YouTube
+채널**을 대상으로 조회한다. 로그인에 사용한 Google 계정에 **YouTube 채널이 아예 없으면**(한
+번도 YouTube를 사용하지 않은 계정 등) 조회 대상 채널 자체가 없어 404 "Channel not found."가
+발생한다.
+
+### 해결
+
+채널 생성은 YouTube Data API로 대신할 수 없다(`channels.insert`는 일반 개발자에게 공개되어
+있지 않음). 따라서 서버는 이 케이스를 구분해 명확한 reason 코드를 내려주고, 클라이언트는
+YouTube의 채널 생성 화면으로 안내한다(2번 항목의 `insufficient_scope`와 동일한 패턴).
+
+- `server/src/services/playlist.service.js`: `ensureDedicatedPlaylist`가
+  `youtube.findPlaylistByTitle`/`youtube.createPlaylist` 호출을 래핑해, `youtubeStatus
+  === 404`이고 메시지에 "channel"이 포함된 경우에만(다른 404와 구분) `statusCode: 404`,
+  `reason: 'no_channel'` 에러로 변환한다(`toDomainError`).
+- `client/src/pages/PlaylistSetupPage.jsx`: `err.reason === 'no_channel'`이면
+  `ConfirmDialog`로 "YouTube 채널이 없습니다. 채널을 만드시겠습니까?"를 묻는다.
+  - "예" → `window.open('https://www.youtube.com/create_channel', ...)`로 채널 생성
+    화면을 새 탭에 열고, 다이얼로그를 닫은 뒤 "채널 생성 후 재생목록 설정 재시도" 버튼을
+    보여준다(채널 생성은 사용자가 새 탭에서 직접 완료해야 한다).
+  - "아니오" → 메인 화면(`/`)으로 이동한다.
+
+### 재발 방지 체크리스트
+
+- [ ] Google API가 계정 상태(채널/조직 등)에 의존하는 404를 반환할 수 있는 기능을 만들 때는
+  일반적인 502로 뭉뚱그리지 말고, 서버에서 원인을 구분해 `reason` 코드로 클라이언트에
+  전달한다.
+- [ ] 사용자가 앱 밖에서 직접 완료해야 하는 작업(채널 생성 등)은 API로 대신하려 하지 말고,
+  해당 작업을 할 수 있는 Google 화면으로 안내(새 탭 이동)한다.

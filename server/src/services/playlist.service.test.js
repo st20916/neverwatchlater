@@ -62,6 +62,62 @@ test('저장된 기록이 없고 YouTube에 이미 존재하면 새로 만들지
   assert.equal(store._records['user-2'].playlistId, 'FOUND_ON_YT');
 });
 
+test('YouTube가 "Channel not found"(404)를 반환하면 reason: no_channel 에러를 던진다', async () => {
+  const store = createFakeStore();
+  const youtube = {
+    findPlaylistByTitle: async () => {
+      const err = new Error('Channel not found.');
+      err.statusCode = 502;
+      err.youtubeStatus = 404;
+      throw err;
+    },
+    createPlaylist: async () => {
+      throw new Error('호출되면 안 됨');
+    },
+  };
+
+  await assert.rejects(
+    () =>
+      ensureDedicatedPlaylist(
+        { googleId: 'user-4', accessToken: 'token' },
+        { userStore: store, youtube }
+      ),
+    (err) => {
+      assert.equal(err.statusCode, 404);
+      assert.equal(err.reason, 'no_channel');
+      return true;
+    }
+  );
+});
+
+test('youtubeStatus가 404여도 "Channel not found"가 아니면 원래 에러를 그대로 던진다', async () => {
+  const store = createFakeStore();
+  const youtube = {
+    findPlaylistByTitle: async () => {
+      const err = new Error('Playlist not found.');
+      err.statusCode = 502;
+      err.youtubeStatus = 404;
+      throw err;
+    },
+    createPlaylist: async () => {
+      throw new Error('호출되면 안 됨');
+    },
+  };
+
+  await assert.rejects(
+    () =>
+      ensureDedicatedPlaylist(
+        { googleId: 'user-5', accessToken: 'token' },
+        { userStore: store, youtube }
+      ),
+    (err) => {
+      assert.equal(err.reason, undefined);
+      assert.equal(err.message, 'Playlist not found.');
+      return true;
+    }
+  );
+});
+
 test('저장된 기록도 없고 YouTube에도 없으면 새로 생성한다', async () => {
   const store = createFakeStore();
   const youtube = {
