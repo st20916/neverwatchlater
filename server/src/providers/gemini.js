@@ -1,5 +1,11 @@
 /**
- * Gemini API 연동을 담당하는 모듈. 자막 텍스트를 받아 핵심 3줄 요약을 생성한다.
+ * Gemini API 연동을 담당하는 모듈. 유튜브 영상 URL을 직접 전달해 핵심 3줄 요약을 생성한다.
+ *
+ * 예전에는 자막을 직접 스크래핑해 텍스트로 요약했지만, 유튜브가 자막(timedtext) 엔드포인트에
+ * PoToken(BotGuard 기반 봇 검증)을 요구하기 시작하면서(2025~2026년경) 서버에서 직접 자막을
+ * 받아오는 방식이 막혔다(200 OK + 빈 본문). 대신 Gemini의 유튜브 URL 직접 분석 기능
+ * (contents.parts에 fileData/fileUri로 유튜브 링크를 넣는 방식)을 사용해, 자막 없이도
+ * Gemini가 영상을 직접 보고 요약하게 한다.
  *
  * 추가 SDK 없이 fetch로 REST를 직접 호출한다(docs/security.md 6절과 동일한 이유 —
  * providers/youtube.js도 같은 방식).
@@ -19,10 +25,11 @@ const SUMMARY_PROMPT = `너는 YouTube 영상의 핵심 내용을 정리하는 �
 - 세 문장은 서로 다른 핵심 내용을 담는다.`;
 
 /**
- * 자막 텍스트를 요약해 정확히 3개의 문자열 배열로 반환한다.
+ * 유튜브 영상을 직접 분석해 정확히 3개의 문자열 배열로 요약을 반환한다.
+ * @param {string} videoId
  * @returns {Promise<string[]>}
  */
-export async function summarizeTranscript(transcriptText, { apiKey, model } = {}) {
+export async function summarizeVideo(videoId, { apiKey, model } = {}) {
   const key = apiKey ?? env.gemini.apiKey;
   const modelName = model ?? env.gemini.model;
 
@@ -36,7 +43,14 @@ export async function summarizeTranscript(transcriptText, { apiKey, model } = {}
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      contents: [{ parts: [{ text: `${SUMMARY_PROMPT}\n\n영상 자막:\n${transcriptText}` }] }],
+      contents: [
+        {
+          parts: [
+            { fileData: { fileUri: `https://www.youtube.com/watch?v=${videoId}` } },
+            { text: SUMMARY_PROMPT },
+          ],
+        },
+      ],
       generationConfig: {
         responseMimeType: 'application/json',
         responseSchema: {

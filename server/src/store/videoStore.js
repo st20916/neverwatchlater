@@ -111,6 +111,26 @@ export function createVideoStore(filePath = DEFAULT_DATA_FILE) {
         return record.videos[index];
       });
     },
+
+    /**
+     * 특정 영상 하나를 목록에서 통째로 제거한다("안볼래요" 액션). 요약 캐시 등 파생
+     * 데이터도 레코드와 함께 자연히 삭제된다. 대상이 이미 없으면 아무 것도 하지 않는다.
+     */
+    removeVideo(googleId, videoId) {
+      return enqueue(async () => {
+        const all = await readAll();
+        const record = all[googleId];
+        if (!record) return null;
+
+        const nextVideos = record.videos.filter((video) => video.videoId !== videoId);
+        if (nextVideos.length === record.videos.length) return null;
+
+        const next = { ...record, videos: nextVideos };
+        all[googleId] = next;
+        await writeAll(all);
+        return next;
+      });
+    },
   };
 }
 

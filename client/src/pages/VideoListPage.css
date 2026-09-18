@@ -13,12 +13,44 @@
 .video-list__meta {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: var(--spacing-sm);
 }
 
 .video-list__synced-at {
   color: var(--color-ink-muted-48);
   white-space: nowrap;
+}
+
+.video-list__sort {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.video-list__sort-label {
+  color: var(--color-ink-muted-48);
+  white-space: nowrap;
+}
+
+.video-list__sort-select {
+  font-family: var(--font-text);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.43;
+  letter-spacing: -0.224px;
+  padding: 8px 14px;
+  min-height: 44px;
+  border: 3px solid var(--color-divider-soft);
+  border-radius: var(--rounded-md);
+  color: var(--color-ink-muted-80);
+  background: var(--color-surface-pearl);
+  cursor: pointer;
+}
+
+.video-list__sort-select:focus-visible {
+  outline: 2px solid var(--color-primary-focus);
+  outline-offset: 2px;
 }
 
 .video-list__previews {
@@ -28,11 +60,17 @@
   margin: var(--spacing-lg) 0;
 }
 
+/* 한 페이지에 영상 4개를 2x2 형식으로 배치한다. */
 .video-list__items {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--spacing-lg);
   margin-top: var(--spacing-lg);
+}
+
+/* 그리드 셀 폭에 맞게 썸네일을 위, 내용을 아래로 쌓는다(VideoCard 기본 가로 배치 대신). */
+.video-list__items .video-card {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .video-list__empty {
@@ -49,5 +87,9 @@
   .video-list__header {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .video-list__items {
+    grid-template-columns: 1fr;
   }
 }

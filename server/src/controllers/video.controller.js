@@ -1,7 +1,9 @@
-import { getValidAccessToken } from '../services/googleSession.service.js';
+import { assertYoutubeScope, getValidAccessToken } from '../services/googleSession.service.js';
 import { getPlaylistStatus } from '../services/playlist.service.js';
 import { getStoredVideos, syncVideos } from '../services/videoSync.service.js';
 import { processPendingSummaries } from '../services/videoSummary.service.js';
+import { deleteVideo as deleteVideoAction } from '../services/videoActions.service.js';
+import { subscribe } from '../services/summaryEvents.js';
 
 async function resolvePlaylistId(googleId) {
   const record = await getPlaylistStatus(googleId);
@@ -17,8 +19,8 @@ async function resolvePlaylistId(googleId) {
 
 /**
  * 응답을 기다리게 하지 않고(fire-and-forget) 백그라운드에서 요약 처리를 시작한다.
- * 자막 조회/Gemini 호출은 사용자의 Google 액세스 토큰이 필요 없어(공개 자막 + 서버 자체
- * Gemini 키 사용) googleId만으로 실행할 수 있다.
+ * Gemini 호출은 사용자의 Google 액세스 토큰이 필요 없어(서버 자체 Gemini 키로 유튜브
+ * URL을 직접 분석) googleId만으로 실행할 수 있다.
  */
 function triggerBackgroundSummaries(googleId) {
   processPendingSummaries({ googleId }).catch((err) => {
@@ -69,3 +71,56 @@ export const listVideos = (req, res, next) => handleSync(req, res, next, { force
  * 사용자가 "지금 동기화" 버튼을 눌렀을 때 3일 주기와 상관없이 즉시 동기화한다.
  */
 export const syncVideosNow = (req, res, next) => handleSync(req, res, next, { force: true });
+
+/**
+ * GET /api/videos/stream
+ * 백그라운드 AI 요약이 영상 하나씩 끝날 때마다 실시간으로 전달하는 SSE 스트림.
+ * 클라이언트는 이 이벤트를 받아 새로고침 없이 해당 카드만 갱신한다.
+ */
+export const streamSummaries = (req, res) => {
+  const googleId = req.session.user.googleId;
+
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    Connection: 'keep-alive',
+  });
+  res.flushHeaders?.();
+
+  const send = (payload) => {
+    res.write(`data: ${JSON.stringify(payload)}\n\n`);
+  };
+
+  const unsubscribe = subscribe(googleId, send);
+
+  // 프록시/브라우저가 유휴 연결을 끊지 않도록 주기적으로 코멘트 라인을 보낸다.
+  const keepAlive = setInterval(() => res.write(':ping\n\n'), 25000);
+
+  req.on('close', () => {
+    clearInterval(keepAlive);
+    unsubscribe();
+  });
+};
+
+/**
+ * DELETE /api/videos/:videoId
+ * "안볼래요" — 유튜브 재생목록과 로컬 저장소 양쪽에서 영상을 제거한다.
+ */
+export const deleteVideo = async (req, res, next) => {
+  try {
+    const googleId = req.session.user.googleId;
+
+    assertYoutubeScope(req);
+    const accessToken = await getValidAccessToken(req);
+
+    const result = await deleteVideoAction({
+      googleId,
+      accessToken,
+      videoId: req.params.videoId,
+    });
+
+    res.status(200).json(result);
+  } catch (err) {
+    next(err);
+  }
+};

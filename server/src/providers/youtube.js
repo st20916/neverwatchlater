@@ -122,8 +122,15 @@ export async function listPlaylistItems(accessToken, playlistId) {
         playlistItemId: item.id,
         title: item.snippet?.title ?? '',
         channelName: item.snippet?.videoOwnerChannelTitle ?? item.snippet?.channelTitle ?? '',
+        // 화질 우선순위: maxres(1280x720) > standard(640x480) > high(480x360) > medium(320x180)
+        // > default(120x90). 영상마다 제공되는 최고 화질이 달라 순서대로 fallback한다.
         thumbnailUrl:
-          item.snippet?.thumbnails?.medium?.url ?? item.snippet?.thumbnails?.default?.url ?? '',
+          item.snippet?.thumbnails?.maxres?.url ??
+          item.snippet?.thumbnails?.standard?.url ??
+          item.snippet?.thumbnails?.high?.url ??
+          item.snippet?.thumbnails?.medium?.url ??
+          item.snippet?.thumbnails?.default?.url ??
+          '',
         publishedAt: item.snippet?.publishedAt ?? new Date().toISOString(),
       });
     }
@@ -151,6 +158,15 @@ export function parseIso8601Duration(duration) {
   const seconds = Number(match[3] || 0);
 
   return hours * 3600 + minutes * 60 + seconds;
+}
+
+/**
+ * 재생목록 항목 하나를 삭제한다("안볼래요" 액션의 유튜브 쪽 반영).
+ * 성공 시 YouTube API가 204(빈 본문)를 반환하는데, youtubeFetch가 이를 이미
+ * `{}`로 안전하게 처리한다.
+ */
+export async function deletePlaylistItem(accessToken, playlistItemId) {
+  await youtubeFetch(accessToken, `/playlistItems?id=${playlistItemId}`, { method: 'DELETE' });
 }
 
 /**

@@ -97,6 +97,43 @@ test('updateVideoFields는 존재하지 않는 영상이면 null을 반환하고
   assert.equal(result, null);
 });
 
+test('removeVideo는 지정한 영상만 제거하고 나머지는 그대로 둔다', async () => {
+  const store = createVideoStore(tmpFile);
+  await store.setUserVideoData('remove-user', {
+    lastSyncedAt: null,
+    videos: [
+      { videoId: 'v1', title: '영상1' },
+      { videoId: 'v2', title: '영상2' },
+    ],
+  });
+
+  const result = await store.removeVideo('remove-user', 'v1');
+
+  assert.deepEqual(
+    result.videos.map((v) => v.videoId),
+    ['v2']
+  );
+  const record = await store.getUserVideoData('remove-user');
+  assert.deepEqual(
+    record.videos.map((v) => v.videoId),
+    ['v2']
+  );
+});
+
+test('removeVideo는 존재하지 않는 영상이면 null을 반환하고 아무것도 바꾸지 않는다', async () => {
+  const store = createVideoStore(tmpFile);
+  await store.setUserVideoData('remove-missing-user', {
+    lastSyncedAt: null,
+    videos: [{ videoId: 'v1', title: '영상1' }],
+  });
+
+  const result = await store.removeVideo('remove-missing-user', 'not-exist');
+
+  assert.equal(result, null);
+  const record = await store.getUserVideoData('remove-missing-user');
+  assert.equal(record.videos.length, 1);
+});
+
 test('동시에 여러 쓰기가 들어와도 모두 반영된다(직렬화)', async () => {
   const store = createVideoStore(tmpFile);
 

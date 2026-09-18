@@ -3,6 +3,7 @@ import { afterEach, beforeEach, mock, test } from 'node:test';
 
 import {
   createPlaylist,
+  deletePlaylistItem,
   findPlaylistByTitle,
   getVideoDurations,
   listPlaylistItems,
@@ -176,6 +177,35 @@ test('listPlaylistItems는 videoId가 없는 항목(삭제/비공개)을 건너�
   const result = await listPlaylistItems('token', 'PLxxx');
 
   assert.deepEqual(result, []);
+});
+
+test('deletePlaylistItem은 지정한 playlistItemId로 DELETE 요청을 보낸다', async () => {
+  let capturedUrl;
+  let capturedMethod;
+  globalThis.fetch = mock.fn(async (url, options) => {
+    capturedUrl = url;
+    capturedMethod = options.method;
+    return jsonResponse(204, undefined);
+  });
+
+  await deletePlaylistItem('token', 'playlistItem-1');
+
+  assert.ok(capturedUrl.includes('/playlistItems?id=playlistItem-1'));
+  assert.equal(capturedMethod, 'DELETE');
+});
+
+test('deletePlaylistItem은 실패하면 youtubeStatus를 담은 에러를 던진다', async () => {
+  globalThis.fetch = mock.fn(async () =>
+    jsonResponse(404, { error: { message: '찾을 수 없습니다.' } })
+  );
+
+  await assert.rejects(
+    () => deletePlaylistItem('token', 'playlistItem-1'),
+    (err) => {
+      assert.equal(err.youtubeStatus, 404);
+      return true;
+    }
+  );
 });
 
 test('parseIso8601Duration은 시/분/초를 초 단위로 변환한다', () => {
