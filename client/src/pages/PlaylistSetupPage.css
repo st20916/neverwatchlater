@@ -567,6 +567,11 @@
   .playlist-setup__inner {
     width: auto;
     margin: 0 var(--spacing-lg);
+    padding-top: 0;
+  }
+
+  .playlist-setup__header {
+    padding-top: var(--spacing-xl);
   }
 
   .playlist-setup__rail {

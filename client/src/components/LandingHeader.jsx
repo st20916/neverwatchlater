@@ -1,21 +1,21 @@
-import { useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import { useEffect, useRef, useState } from "react";
+import { NavLink } from "react-router-dom";
 
-import { PRIMARY_NAV, getNavTo } from '../data/navigation.js';
-import useCurrentUser from '../hooks/useCurrentUser.js';
+import { PRIMARY_NAV, getNavTo } from "../data/navigation.js";
+import useCurrentUser from "../hooks/useCurrentUser.js";
 
-import './LandingHeader.css';
+import "./LandingHeader.css";
 
 const navLinkClass = ({ isActive }) =>
   isActive
-    ? 'nwl-header-link nwl-header-link--active type-nav-link'
-    : 'nwl-header-link type-nav-link';
+    ? "nwl-header-link nwl-header-link--active type-nav-link"
+    : "nwl-header-link type-nav-link";
 
 const AccountStatus = ({ user }) => {
   const displayName = user.name?.trim();
 
   return (
-    <div className="nwl-account" aria-label={displayName || '로그인됨'}>
+    <div className="nwl-account" aria-label={displayName || "로그인됨"}>
       {displayName ? (
         <span className="nwl-account-name type-nav-link">{displayName}</span>
       ) : null}
@@ -30,7 +30,7 @@ const AccountStatus = ({ user }) => {
         />
       ) : (
         <span className="nwl-account-fallback" aria-hidden="true">
-          {displayName?.slice(0, 1) || '?'}
+          {displayName?.slice(0, 1) || "?"}
         </span>
       )}
     </div>
@@ -45,13 +45,7 @@ const LoginStatus = () => (
       fill="none"
       aria-hidden="true"
     >
-      <circle
-        cx="12"
-        cy="7"
-        r="3.6"
-        stroke="currentColor"
-        strokeWidth="1.85"
-      />
+      <circle cx="12" cy="7" r="3.6" stroke="currentColor" strokeWidth="1.85" />
       <path
         d="M4.8 19.2C6.2 13.6 8.8 12.2 12 12.2s5.8 1.4 7.2 7"
         stroke="currentColor"
@@ -64,7 +58,32 @@ const LoginStatus = () => (
 
 const LandingHeader = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuButtonRef = useRef(null);
+  const trayRef = useRef(null);
   const user = useCurrentUser();
+
+  useEffect(() => {
+    if (!isMenuOpen) {
+      return undefined;
+    }
+
+    const handlePointerDown = (event) => {
+      const target = event.target;
+      if (!(target instanceof Node)) {
+        return;
+      }
+      if (trayRef.current?.contains(target)) {
+        return;
+      }
+      if (menuButtonRef.current?.contains(target)) {
+        return;
+      }
+      setIsMenuOpen(false);
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => document.removeEventListener("pointerdown", handlePointerDown);
+  }, [isMenuOpen]);
 
   return (
     <header className="nwl-header">
@@ -76,7 +95,7 @@ const LandingHeader = () => {
         <nav className="nwl-header-nav" aria-label="주요 메뉴">
           {PRIMARY_NAV.map((item) => (
             <NavLink
-              key={`${item.path}${item.hash ?? ''}`}
+              key={`${item.path}${item.hash ?? ""}`}
               to={getNavTo(item)}
               end
               className={navLinkClass}
@@ -90,15 +109,16 @@ const LandingHeader = () => {
           {user ? <AccountStatus user={user} /> : <LoginStatus />}
 
           <button
+            ref={menuButtonRef}
             type="button"
             className={
               isMenuOpen
-                ? 'nwl-header-menu nwl-header-menu--open'
-                : 'nwl-header-menu'
+                ? "nwl-header-menu nwl-header-menu--open"
+                : "nwl-header-menu"
             }
             aria-expanded={isMenuOpen}
             aria-controls="nwl-header-tray"
-            aria-label={isMenuOpen ? '메뉴 닫기' : '메뉴 열기'}
+            aria-label={isMenuOpen ? "메뉴 닫기" : "메뉴 열기"}
             onClick={() => setIsMenuOpen((open) => !open)}
           >
             <svg
@@ -118,17 +138,24 @@ const LandingHeader = () => {
         </div>
       </div>
 
+      {isMenuOpen ? (
+        <div className="nwl-header-backdrop" aria-hidden="true" />
+      ) : null}
+
       <nav
+        ref={trayRef}
         id="nwl-header-tray"
         className={
-          isMenuOpen ? 'nwl-header-tray nwl-header-tray--open' : 'nwl-header-tray'
+          isMenuOpen
+            ? "nwl-header-tray nwl-header-tray--open"
+            : "nwl-header-tray"
         }
         aria-label="모바일 메뉴"
         aria-hidden={!isMenuOpen}
       >
         {PRIMARY_NAV.map((item) => (
           <NavLink
-            key={`tray-${item.path}${item.hash ?? ''}`}
+            key={`tray-${item.path}${item.hash ?? ""}`}
             to={getNavTo(item)}
             end
             className="nwl-header-tray-link type-nav-link"

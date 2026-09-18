@@ -92,7 +92,6 @@
 }
 
 html {
-  overflow-x: clip;
   background: #F7F4ED;
   scrollbar-width: none;
 }

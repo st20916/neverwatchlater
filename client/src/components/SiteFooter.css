@@ -50,7 +50,8 @@
   .nwl-footer-inner {
     width: auto;
     margin: 0 var(--spacing-lg);
-    padding: var(--spacing-xl) 0;
+    padding: var(--spacing-lg) 0;
+    font-size: 11px;
   }
 }
 
