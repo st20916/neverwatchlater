@@ -8,6 +8,7 @@ import { getAuthFailureCopy } from '../data/authFailureReasons.js';
 import './PlaylistSetupPage.css';
 
 const SETUP_STATES = [
+  { value: 'linking', label: '연동 진행 중' },
   { value: 'progress', label: '설정 진행 중' },
   { value: 'success', label: '설정 성공' },
   { value: 'failed', label: '설정 실패' },
@@ -22,6 +23,12 @@ const STEPS = [
 ];
 
 const STEP_STATUS = {
+  linking: {
+    account: 'current',
+    playlist: 'waiting',
+    target: 'waiting',
+    complete: 'waiting',
+  },
   progress: {
     account: 'done',
     playlist: 'current',
@@ -133,6 +140,21 @@ const SETUP_HEADER = {
   title: '전용 재생목록을 설정하고 있습니다',
 };
 
+const SETUP_SUCCESS_HEADER = {
+  kicker: 'SETUP / PLAYLIST',
+  title: '전용 재생목록 설정을 완료했습니다.',
+};
+
+const SETUP_FAILED_HEADER = {
+  kicker: 'SETUP / PLAYLIST',
+  title: '재생목록을 만들지 못했습니다.',
+};
+
+const ACCOUNT_LINKING_HEADER = {
+  kicker: 'SETUP / ACCOUNT',
+  title: 'Google 계정을 연동하고 있습니다',
+};
+
 const ACCOUNT_FAILED_HEADER = {
   kicker: 'SETUP / ACCOUNT',
   title: 'Google 계정 연결에 실패했습니다',
@@ -143,6 +165,7 @@ const PlaylistSetupPage = ({
   initialState = 'progress',
   failureReason = '',
   showPreview = true,
+  children = null,
 } = {}) => {
   const [setupState, setSetupState] = useState(initialState);
   const [toast, setToast] = useState(null);
@@ -176,8 +199,14 @@ const PlaylistSetupPage = ({
   };
 
   const stepStatus = STEP_STATUS[setupState];
+  const isLinking = setupState === 'linking';
   const isAccountFailed = setupState === 'accountFailed';
-  const headerCopy = isAccountFailed ? ACCOUNT_FAILED_HEADER : SETUP_HEADER;
+  const headerCopy = {
+    linking: ACCOUNT_LINKING_HEADER,
+    success: SETUP_SUCCESS_HEADER,
+    failed: SETUP_FAILED_HEADER,
+    accountFailed: ACCOUNT_FAILED_HEADER,
+  }[setupState] ?? SETUP_HEADER;
 
   return (
     <section className="nwl-page playlist-setup">
@@ -192,6 +221,20 @@ const PlaylistSetupPage = ({
           <p className="playlist-setup__description">
             {isAccountFailed ? (
               headerCopy.description
+            ) : isLinking ? (
+              <>
+                유튜브 재생목록을 읽을 수 있도록 Google 계정 권한을 확인하는
+                중입니다.{' '}
+                <br className="playlist-setup__break" />
+                창을 닫지 말고 잠시만 기다려 주세요.
+              </>
+            ) : setupState === 'failed' ? (
+              <>
+                전용 재생목록을 만들거나 동기화 대상으로 지정하는 데 문제가
+                생겼습니다.{' '}
+                <br className="playlist-setup__break" />
+                아래 재시도로 설정을 다시 진행해 주세요.
+              </>
             ) : (
               <>
                 유튜브 계정에 ‘Neverwatchlater’ 재생목록을 만들고 동기화 대상으로
@@ -246,15 +289,32 @@ const PlaylistSetupPage = ({
           })}
         </ol>
 
+        {isLinking ? (
+          <div className="playlist-setup__banner playlist-setup__banner--linking" role="status">
+            <span className="playlist-setup__spinner" aria-hidden="true" />
+            <div className="playlist-setup__banner-copy">
+              <p className="playlist-setup__banner-title">
+                Google 계정 정보를 확인하고 있습니다
+              </p>
+              <p className="playlist-setup__banner-detail">
+                권한 승인이 끝나면 자동으로 다음 단계로 넘어갑니다.
+              </p>
+            </div>
+          </div>
+        ) : null}
+
         {setupState === 'progress' ? (
-          <p className="playlist-setup__banner playlist-setup__banner--progress" role="status">
-            <span className="playlist-setup__dots" aria-hidden="true">
-              <span />
-              <span />
-              <span />
-            </span>
-            재생목록을 만드는 중입니다… 잠시만 기다려 주세요.
-          </p>
+          <div className="playlist-setup__banner playlist-setup__banner--progress" role="status">
+            <span className="playlist-setup__spinner" aria-hidden="true" />
+            <div className="playlist-setup__banner-copy">
+              <p className="playlist-setup__banner-title">
+                재생목록을 만드는 중입니다
+              </p>
+              <p className="playlist-setup__banner-detail">
+                잠시만 기다려 주세요.
+              </p>
+            </div>
+          </div>
         ) : null}
 
         {setupState === 'failed' ? (
@@ -308,6 +368,8 @@ const PlaylistSetupPage = ({
             </Link>
           </div>
         ) : null}
+
+        {children}
 
         {showPreview ? (
           <StatePreview

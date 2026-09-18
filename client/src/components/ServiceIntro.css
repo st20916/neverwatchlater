@@ -488,6 +488,23 @@
     letter-spacing: -0.374px;
     line-height: 1.47;
   }
+
+  .action-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .guide-action-card {
+    min-height: 0;
+    padding: var(--spacing-md) var(--spacing-lg);
+  }
+
+  .action-english {
+    margin-top: var(--spacing-md);
+  }
+
+  .guide-action-card > p:last-of-type {
+    margin-top: var(--spacing-xs);
+  }
 }
 
 @media (max-width: 419px) {
