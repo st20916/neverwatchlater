@@ -12,14 +12,13 @@ import {
 import ConfirmDialog from '../components/ConfirmDialog.jsx';
 import Toast from '../components/Toast.jsx';
 import VideoCard from '../components/VideoCard.jsx';
-import VideoListPagination from '../components/VideoListPagination.jsx';
 import useSectionReveal from '../hooks/useSectionReveal.js';
 import { getDdayState } from '../utils/dday.js';
 import { DEFAULT_SORT, SORT_OPTIONS, sortVideos } from '../utils/sortVideos.js';
 
 import './VideoListPage.css';
 
-export const PAGE_SIZE = 6;
+export const PAGE_SIZE = 5;
 
 const LIST_TABS = [
   { id: 'all', label: '전체' },
@@ -154,6 +153,40 @@ const useStuckTabs = () => {
   return { sentinelRef, stuck };
 };
 
+/**
+ * 목록 끝의 센티널이 화면에 들어오면 onLoadMore를 호출한다.
+ * 페이지 버튼 대신 스크롤만으로 다음 묶음을 이어 붙이기 위한 훅.
+ */
+const useInfiniteLoad = (hasMore, onLoadMore) => {
+  const sentinelRef = useRef(null);
+  const onLoadMoreRef = useRef(onLoadMore);
+
+  useEffect(() => {
+    onLoadMoreRef.current = onLoadMore;
+  }, [onLoadMore]);
+
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel || !hasMore || typeof IntersectionObserver === 'undefined') {
+      return undefined;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          onLoadMoreRef.current();
+        }
+      },
+      { rootMargin: '0px 0px 200px 0px' },
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMore]);
+
+  return sentinelRef;
+};
+
 const VideoListPage = () => {
   const location = useLocation();
   const importedVideoIds = useMemo(() => {
@@ -169,7 +202,7 @@ const VideoListPage = () => {
   const [lastSyncedAt, setLastSyncedAt] = useState(null);
   const [syncFailed, setSyncFailed] = useState(false);
   const [syncing, setSyncing] = useState(false);
-  const [page, setPage] = useState(1);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [sortKey, setSortKey] = useState(
     importedVideoIds.length > 0 ? 'savedRecent' : DEFAULT_SORT,
   );
@@ -200,22 +233,25 @@ const VideoListPage = () => {
         importedVideoIds.includes(getVideoKey(video)),
       );
       importPageAppliedRef.current = true;
-      setPage(firstIndex >= 0 ? Math.floor(firstIndex / PAGE_SIZE) + 1 : 1);
+      setVisibleCount(
+        firstIndex >= 0
+          ? Math.ceil((firstIndex + 1) / PAGE_SIZE) * PAGE_SIZE
+          : PAGE_SIZE,
+      );
       return;
     }
 
-    setPage(1);
+    setVisibleCount(PAGE_SIZE);
   }, [importedVideoIds]);
 
   const visibleVideos = sortVideos(
     videos.filter(TAB_FILTERS[listTab]),
     sortKey,
   );
-  const totalPages = Math.max(1, Math.ceil(visibleVideos.length / PAGE_SIZE));
-  const currentPage = Math.min(page, totalPages);
-  const pageVideos = visibleVideos.slice(
-    (currentPage - 1) * PAGE_SIZE,
-    currentPage * PAGE_SIZE,
+  const pageVideos = visibleVideos.slice(0, visibleCount);
+  const hasMore = visibleCount < visibleVideos.length;
+  const loadMoreRef = useInfiniteLoad(hasMore, () =>
+    setVisibleCount((count) => count + PAGE_SIZE),
   );
   const tabCounts = {
     all: videos.length,
@@ -252,10 +288,6 @@ const VideoListPage = () => {
       document.removeEventListener('keydown', closeSortMenu);
     };
   }, [sortOpen]);
-
-  useEffect(() => {
-    setPage((prev) => Math.min(prev, totalPages));
-  }, [totalPages]);
 
   useEffect(() => {
     if (
@@ -582,7 +614,7 @@ const VideoListPage = () => {
               aria-label={`${tab.label} ${tabCounts[tab.id]}개`}
               onClick={() => {
                 setListTab(tab.id);
-                setPage(1);
+                setVisibleCount(PAGE_SIZE);
               }}
             >
               {tab.label}
@@ -641,7 +673,7 @@ const VideoListPage = () => {
                         onClick={() => {
                           setSortKey(option.value);
                           setSortOpen(false);
-                          setPage(1);
+                          setVisibleCount(PAGE_SIZE);
                         }}
                       >
                         {option.label}
@@ -708,11 +740,13 @@ const VideoListPage = () => {
               })}
             </ul>
 
-            <VideoListPagination
-              page={currentPage}
-              totalPages={totalPages}
-              onPageChange={setPage}
-            />
+            {hasMore ? (
+              <div
+                className="video-list-page__load-more"
+                ref={loadMoreRef}
+                aria-hidden="true"
+              />
+            ) : null}
           </>
         )}
       </div>

@@ -652,3 +652,9 @@
     transition: none;
   }
 }
+
+/* 스크롤 자동 로드용 센티널: 마지막 카드 아래에 보이지 않게 둔다. */
+.video-list-page__load-more {
+  height: 1px;
+  margin-top: var(--spacing-md);
+}

@@ -40,6 +40,40 @@ const makeVideo = (overrides = {}) => ({
   ...overrides,
 });
 
+// jsdom에는 IntersectionObserver가 없어 센티널 노출을 직접 흉내 낸다.
+let observers = [];
+
+class MockIntersectionObserver {
+  constructor(callback) {
+    this.callback = callback;
+    this.targets = new Set();
+    observers.push(this);
+  }
+
+  observe(element) {
+    this.targets.add(element);
+  }
+
+  unobserve(element) {
+    this.targets.delete(element);
+  }
+
+  disconnect() {
+    observers = observers.filter((observer) => observer !== this);
+  }
+}
+
+const getSentinel = () => document.querySelector('.video-list-page__load-more');
+
+const reachSentinel = () => {
+  const sentinel = getSentinel();
+  observers
+    .filter((observer) => observer.targets.has(sentinel))
+    .forEach((observer) =>
+      observer.callback([{ isIntersecting: true, target: sentinel }]),
+    );
+};
+
 const renderPage = (entries = ['/videos']) =>
   render(
     <MemoryRouter initialEntries={entries}>
@@ -54,6 +88,8 @@ const chooseSort = (label) => {
 
 describe('VideoListPage', () => {
   beforeEach(() => {
+    observers = [];
+    vi.stubGlobal('IntersectionObserver', MockIntersectionObserver);
     fetchVideos.mockReset();
     syncVideosNow.mockReset();
     deleteVideo.mockReset();
@@ -63,6 +99,7 @@ describe('VideoListPage', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   it('기본 정렬(저장 오래된 순)은 오래 방치된 영상을 먼저 표시한다', async () => {
@@ -238,13 +275,13 @@ describe('VideoListPage', () => {
 
     renderPage();
     await screen.findByText('영상 제목');
-    expect(screen.getByText('D+13')).toBeInTheDocument();
+    expect(screen.getByText('D+21')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: '나중에' }));
 
     expect(await screen.findByText('저장 일자를 초기화했습니다.')).toBeInTheDocument();
     expect(resetVideoDday).toHaveBeenCalledWith('v1');
-    expect(screen.queryByText('D+13')).not.toBeInTheDocument();
+    expect(screen.queryByText('D+21')).not.toBeInTheDocument();
   });
 
   it('보관하기 버튼을 누르면 보관 탭으로 이동하고 보관 해제로 되돌릴 수 있다', async () => {
@@ -441,9 +478,9 @@ describe('VideoListPage', () => {
     expect(screen.queryByText('AI 요약을 생성하고 있습니다.')).not.toBeInTheDocument();
   });
 
-  it('영상이 한 페이지 이하면 페이지네이션을 표시하지 않는다', async () => {
+  it('영상이 5개 이하면 스크롤 로드 센티널을 두지 않는다', async () => {
     fetchVideos.mockResolvedValue({
-      videos: Array.from({ length: 6 }, (_, i) =>
+      videos: Array.from({ length: 5 }, (_, i) =>
         makeVideo({ videoId: `v${i}`, title: `영상 ${i}` }),
       ),
       lastSyncedAt: null,
@@ -454,16 +491,15 @@ describe('VideoListPage', () => {
     renderPage();
     await screen.findByText('영상 0');
 
-    expect(
-      screen.queryByRole('navigation', { name: '영상 목록 페이지' }),
-    ).not.toBeInTheDocument();
+    expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(5);
+    expect(getSentinel()).toBeNull();
   });
 
-  it('영상이 한 페이지를 넘으면 6개씩 보여주고 페이지를 이동할 수 있다', async () => {
+  it('영상이 5개를 넘으면 목록 끝으로 스크롤할 때마다 5개씩 이어서 보여준다', async () => {
     fetchVideos.mockResolvedValue({
-      // 기본 정렬이 "저장 오래된 순"이므로 v0이 가장 오래된 영상이어야 첫 페이지에 온다.
-      videos: Array.from({ length: 9 }, (_, i) =>
-        makeVideo({ videoId: `v${i}`, title: `영상 ${i}`, savedAt: daysAgo(9 - i) }),
+      // 기본 정렬이 "저장 오래된 순"이므로 v0이 가장 오래된 영상이어야 맨 앞에 온다.
+      videos: Array.from({ length: 12 }, (_, i) =>
+        makeVideo({ videoId: `v${i}`, title: `영상 ${i}`, savedAt: daysAgo(12 - i) }),
       ),
       lastSyncedAt: null,
       synced: true,
@@ -473,19 +509,38 @@ describe('VideoListPage', () => {
     renderPage();
     await screen.findByText('영상 0');
 
-    expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(6);
-    expect(screen.getByRole('button', { name: '2페이지' })).toBeInTheDocument();
+    expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(5);
+    expect(screen.queryByText('영상 5')).not.toBeInTheDocument();
+    expect(observers.some((observer) => observer.targets.has(getSentinel()))).toBe(true);
 
-    fireEvent.click(screen.getByRole('button', { name: '다음' }));
+    act(() => reachSentinel());
+    await screen.findByText('영상 5');
+    expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(10);
 
-    await screen.findByText('영상 6');
-    expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(3);
-    expect(screen.getByRole('button', { name: '다음' })).toBeDisabled();
+    act(() => reachSentinel());
+    await screen.findByText('영상 11');
+    expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(12);
+    expect(getSentinel()).toBeNull();
+  });
 
-    fireEvent.click(screen.getByRole('button', { name: '이전' }));
+  it('탭을 바꾸면 다시 5개부터 보여준다', async () => {
+    fetchVideos.mockResolvedValue({
+      videos: Array.from({ length: 12 }, (_, i) =>
+        makeVideo({ videoId: `v${i}`, title: `영상 ${i}`, savedAt: daysAgo(30 - i) }),
+      ),
+      lastSyncedAt: null,
+      synced: true,
+      syncFailed: false,
+    });
 
+    renderPage();
     await screen.findByText('영상 0');
-    expect(screen.getByRole('button', { name: '이전' })).toBeDisabled();
+    act(() => reachSentinel());
+    await screen.findByText('영상 5');
+
+    fireEvent.click(screen.getByRole('tab', { name: '정리 대상 12개' }));
+
+    expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(5);
   });
 
   it('대량 등록 직후 진입하면 방금 등록한 영상을 보여주고 포커스한다', async () => {

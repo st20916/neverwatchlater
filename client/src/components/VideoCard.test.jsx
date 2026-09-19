@@ -36,21 +36,21 @@ const renderCard = (video, props = {}) =>
   );
 
 describe('VideoCard', () => {
-  it('7일 이상 방치된 영상에 D-Day 경고를 표시한다', () => {
+  it('7일을 초과한 영상에 D-Day 경고를 표시한다', () => {
+    // 10일 전 저장 → 저장 당일 D+1이므로 D+11
     renderCard(baseVideo);
 
-    const badge = screen.getByText('D+03');
+    const badge = screen.getByText('D+11');
     expect(badge).toBeInTheDocument();
     expect(badge).toHaveClass('video-card__badge--warning');
   });
 
-  it('7일 미만 영상에는 방치 경고를 표시하지 않는다', () => {
+  it('7일 이하 영상에는 방치 경고를 표시하지 않는다', () => {
     renderCard({ ...baseVideo, savedAt: daysAgo(3) });
 
-    const badge = screen.getByText('D-04');
+    const badge = screen.getByText('D+04');
     expect(badge).toBeInTheDocument();
     expect(badge).toHaveClass('video-card__badge--neutral');
-    expect(screen.queryByText('D+03')).not.toBeInTheDocument();
   });
 
   it('보관 상태 영상은 D-Day 판정에서 제외하고 보관취소를 제공한다', () => {

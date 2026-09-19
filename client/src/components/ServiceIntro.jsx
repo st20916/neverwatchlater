@@ -11,7 +11,8 @@ const DEMO_VIDEO = {
   id: "demo-insight",
   title: "일의 본질을 다시 생각하는 시간",
   channelName: "Study Archive",
-  savedAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
+  // 7일 전 저장 → D+08(정리 대상 첫날)로 표시된다.
+  savedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
   duration: "16:42",
   isArchived: false,
   summary: [
