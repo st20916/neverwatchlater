@@ -1,23 +1,44 @@
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { useEffect } from "react";
+import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
 
-import GlobalNav from './components/GlobalNav.jsx';
-import SiteFooter from './components/SiteFooter.jsx';
-import AuthFailedPage from './pages/AuthFailedPage.jsx';
-import AuthLoadingPage from './pages/AuthLoadingPage.jsx';
-import BulkImportPage from './pages/BulkImportPage.jsx';
-import LandingPage from './pages/LandingPage.jsx';
-import PlaylistSetupPage from './pages/PlaylistSetupPage.jsx';
-import VideoListPage from './pages/VideoListPage.jsx';
-// Google OAuth 로그인 실패 결과 화면 (server/src/controllers/auth.controller.js가 리다이렉트).
-// 성공 시에는 /playlist-setup(PlaylistSetupPage)으로 바로 리다이렉트된다.
-import OAuthError from './pages/OAuthError.jsx';
+import LandingHeader from "./components/LandingHeader.jsx";
+import SiteFooter from "./components/SiteFooter.jsx";
+import AuthFailedPage from "./pages/AuthFailedPage.jsx";
+import AuthLoadingPage from "./pages/AuthLoadingPage.jsx";
+import LandingPage from "./pages/LandingPage.jsx";
+import PlaylistSetupPage from "./pages/PlaylistSetupPage.jsx";
+import VideoListPage from "./pages/VideoListPage.jsx";
+// TODO(테스트용): Google OAuth 리다이렉트 결과 확인용 임시 화면입니다.
+// 테스트가 끝나면 아래 두 import와 <Route> 두 줄을 함께 삭제해주세요.
+import OAuthError from "./pages/OAuthError.jsx";
+import OAuthSuccess from "./pages/OAuthSuccess.jsx";
 
-import './App.css';
+import "./App.css";
 
-const App = () => (
-  <BrowserRouter>
-    <div className="app-shell">
-      <GlobalNav />
+const CHROME_PATHS = [
+  "/auth/loading",
+  "/auth/failed",
+  "/playlist-setup",
+  "/videos",
+  "/oauth/success",
+  "/oauth/error",
+];
+
+const AppLayout = () => {
+  const { pathname, hash } = useLocation();
+  const showChrome = CHROME_PATHS.includes(pathname);
+
+  useEffect(() => {
+    if (hash) {
+      return;
+    }
+
+    window.scrollTo(0, 0);
+  }, [pathname, hash]);
+
+  return (
+    <div className={showChrome ? "app-shell" : "app-shell app-shell--guide"}>
+      <LandingHeader />
 
       <main className="app-shell__main">
         <Routes>
@@ -34,6 +55,12 @@ const App = () => (
 
       <SiteFooter />
     </div>
+  );
+};
+
+const App = () => (
+  <BrowserRouter>
+    <AppLayout />
   </BrowserRouter>
 );
 

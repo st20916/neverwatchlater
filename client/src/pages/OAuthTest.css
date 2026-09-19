@@ -11,7 +11,7 @@
   gap: 12px;
   padding: 24px;
   text-align: center;
-  font-family: system-ui, sans-serif;
+  font-family: var(--font-text);
 }
 
 .oauth-test-page--error h1 {
@@ -20,7 +20,7 @@
 
 .oauth-test-reason {
   color: #888;
-  font-family: monospace;
+  font-family: var(--font-text);
 }
 
 .oauth-test-page a {
