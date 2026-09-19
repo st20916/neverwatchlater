@@ -352,6 +352,9 @@ const VideoListPage = () => {
             >
               {syncing ? '동기화 중…' : '지금 동기화'}
             </button>
+            <Link to="/videos/bulk-import" className="btn-pearl-capsule">
+              링크 대량 등록
+            </Link>
           </div>
         </header>
 

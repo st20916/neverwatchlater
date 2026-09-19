@@ -36,6 +36,20 @@ test('POST /api/videos/sync는 로그인하지 않으면 401을 반환한다', a
   });
 });
 
+test('POST /api/videos/bulk-import는 로그인하지 않으면 401을 반환한다', async () => {
+  await withServer(async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/api/videos/bulk-import`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: 'https://youtu.be/dQw4w9WgXcQ' }),
+    });
+    const data = await res.json();
+
+    assert.equal(res.status, 401);
+    assert.equal(data.message, '로그인이 필요합니다.');
+  });
+});
+
 test('GET /api/videos/stream은 로그인하지 않으면 401을 반환한다', async () => {
   await withServer(async (baseUrl) => {
     const res = await fetch(`${baseUrl}/api/videos/stream`);

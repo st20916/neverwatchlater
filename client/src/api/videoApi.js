@@ -69,6 +69,20 @@ export async function resetVideoDday(videoId) {
 }
 
 /**
+ * 대량 링크 등록 — 붙여넣은 텍스트에서 유효한 유튜브 영상 URL을 추출해 전용 재생목록에
+ * 일괄 등록한다. 링크별 성공/실패/유효하지 않음 결과를 함께 받는다.
+ */
+export async function bulkImportVideos(text) {
+  const res = await fetch(`${API_BASE_URL}/api/videos/bulk-import`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text }),
+  });
+  return parseResponse(res, '링크 등록에 실패했습니다.'); // { total, successCount, duplicateCount, invalidCount, failedCount, results }
+}
+
+/**
  * 백그라운드 AI 요약이 영상 하나씩 끝날 때마다 실시간으로 전달받는다(SSE). 새로고침 없이
  * 화면을 갱신하기 위한 용도 — onUpdate는 { videoId, summaryStatus, summary }를 받는다.
  * @returns {() => void} 구독 해제 함수

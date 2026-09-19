@@ -1,0 +1,108 @@
+.bulk-import__description {
+  margin-top: var(--spacing-sm);
+  color: var(--color-ink-muted-80);
+}
+
+.bulk-import__empty {
+  margin-top: var(--spacing-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+}
+
+.bulk-import__empty-description {
+  color: var(--color-ink-muted-48);
+}
+
+.bulk-import__form {
+  margin-top: var(--spacing-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.bulk-import__label {
+  color: var(--color-ink-muted-80);
+}
+
+.bulk-import__textarea {
+  font-family: var(--font-text);
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 1.47;
+  letter-spacing: -0.374px;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--rounded-lg);
+  color: var(--color-ink);
+  background: var(--color-canvas);
+  resize: vertical;
+  min-height: 160px;
+}
+
+.bulk-import__textarea:focus-visible {
+  outline: 2px solid var(--color-primary-focus);
+  outline-offset: 2px;
+}
+
+.bulk-import__textarea:disabled {
+  color: var(--color-ink-muted-48);
+  background: var(--color-canvas-parchment);
+}
+
+.bulk-import__hint {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xxs);
+}
+
+.bulk-import__hint-count {
+  color: var(--color-ink-muted-48);
+}
+
+.bulk-import__hint-warning {
+  color: var(--color-ink);
+  font-weight: 600;
+}
+
+.bulk-import__form .btn-primary {
+  align-self: flex-start;
+}
+
+.bulk-import__result {
+  margin-top: var(--spacing-xl);
+}
+
+.bulk-import__result-summary {
+  margin-top: var(--spacing-xs);
+  color: var(--color-ink-muted-80);
+}
+
+.bulk-import__result-list {
+  margin-top: var(--spacing-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.bulk-import__result-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  padding: var(--spacing-sm) var(--spacing-lg);
+}
+
+.bulk-import__result-url {
+  color: var(--color-ink-muted-80);
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 640px) {
+  .bulk-import__result-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-xs);
+  }
+}

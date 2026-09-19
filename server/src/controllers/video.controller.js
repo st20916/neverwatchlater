@@ -7,6 +7,7 @@ import {
   resetSavedAt,
   setArchived,
 } from '../services/videoActions.service.js';
+import { bulkImportVideos as bulkImportVideosAction } from '../services/videoBulkImport.service.js';
 import { subscribe } from '../services/summaryEvents.js';
 
 async function resolvePlaylistId(googleId) {
@@ -148,6 +149,51 @@ export const updateArchiveState = async (req, res, next) => {
     const result = await setArchived({ googleId, videoId: req.params.videoId, isArchived });
 
     res.status(200).json(result);
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * 대량 링크 등록으로 새 영상이 하나라도 추가되면, 제목/채널/썸네일 등 상세 메타데이터를
+ * 채우기 위해 백그라운드로 강제 동기화하고, 이어서 신규 영상의 AI 요약도 트리거한다
+ * (playlist.controller.js의 triggerBackgroundVideoSync와 동일한 패턴).
+ */
+function triggerBackgroundSyncAfterBulkImport(googleId, accessToken, playlistId) {
+  syncVideos({ googleId, accessToken, playlistId, force: true })
+    .then(() => processPendingSummaries({ googleId }))
+    .catch((err) => {
+      console.warn('videoBulkImport: 등록 후 백그라운드 동기화 실패', err.message);
+    });
+}
+
+/**
+ * POST /api/videos/bulk-import
+ * 붙여넣은 텍스트에서 유효한 유튜브 영상 URL을 추출해 전용 재생목록에 대량 등록한다(PRD 5.1).
+ * 링크별 성공/실패/유효하지 않음 결과를 구분해 반환한다.
+ */
+export const bulkImportVideos = async (req, res, next) => {
+  try {
+    const googleId = req.session.user.googleId;
+    const { text } = req.body ?? {};
+
+    if (typeof text !== 'string' || text.trim().length === 0) {
+      const err = new Error('등록할 유튜브 URL이 포함된 텍스트를 입력해주세요.');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    assertYoutubeScope(req);
+    const accessToken = await getValidAccessToken(req);
+    const playlistId = await resolvePlaylistId(googleId);
+
+    const result = await bulkImportVideosAction({ googleId, accessToken, playlistId, text });
+
+    res.status(200).json(result);
+
+    if (result.successCount > 0) {
+      triggerBackgroundSyncAfterBulkImport(googleId, accessToken, playlistId);
+    }
   } catch (err) {
     next(err);
   }
