@@ -47,6 +47,11 @@ const renderPage = () =>
     </MemoryRouter>,
   );
 
+const chooseSort = (label) => {
+  fireEvent.click(screen.getByRole('button', { name: '정렬' }));
+  fireEvent.click(screen.getByRole('option', { name: label }));
+};
+
 describe('VideoListPage', () => {
   beforeEach(() => {
     fetchVideos.mockReset();
@@ -91,9 +96,7 @@ describe('VideoListPage', () => {
     renderPage();
     await screen.findAllByRole('heading', { level: 3 });
 
-    fireEvent.change(screen.getByLabelText('정렬'), {
-      target: { value: 'savedRecent' },
-    });
+    chooseSort('저장 경과 최신순');
 
     const titles = await screen.findAllByRole('heading', { level: 3 });
     expect(titles[0].textContent).toBe('최근 저장');
@@ -128,9 +131,7 @@ describe('VideoListPage', () => {
       '먼저 저장',
     );
 
-    fireEvent.change(screen.getByLabelText('정렬'), {
-      target: { value: 'savedRecent' },
-    });
+    chooseSort('저장 경과 최신순');
 
     expect((await screen.findAllByRole('heading', { level: 3 }))[0].textContent).toBe(
       '나중 저장',
@@ -151,16 +152,12 @@ describe('VideoListPage', () => {
     renderPage();
     await screen.findAllByRole('heading', { level: 3 });
 
-    fireEvent.change(screen.getByLabelText('정렬'), {
-      target: { value: 'durationShort' },
-    });
+    chooseSort('영상 길이 짧은순');
     expect((await screen.findAllByRole('heading', { level: 3 }))[0].textContent).toBe(
       '짧은 영상',
     );
 
-    fireEvent.change(screen.getByLabelText('정렬'), {
-      target: { value: 'durationLong' },
-    });
+    chooseSort('영상 길이 긴순');
     expect((await screen.findAllByRole('heading', { level: 3 }))[0].textContent).toBe(
       '긴 영상',
     );
@@ -198,8 +195,9 @@ describe('VideoListPage', () => {
 
     renderPage();
 
+    expect(await screen.findByText('동기화 실패')).toBeInTheDocument();
     expect(
-      await screen.findByText('유튜브와 통신하지 못해 동기화가 중단되었습니다'),
+      screen.getByRole('button', { name: '동기화 재시도' }),
     ).toBeInTheDocument();
   });
 
@@ -220,7 +218,7 @@ describe('VideoListPage', () => {
     renderPage();
     await screen.findByText('이전 목록');
 
-    fireEvent.click(screen.getByRole('button', { name: '지금 동기화' }));
+    fireEvent.click(screen.getByRole('button', { name: '목록 동기화' }));
 
     await screen.findByText('갱신된 목록');
     expect(syncVideosNow).toHaveBeenCalledTimes(1);
@@ -240,13 +238,13 @@ describe('VideoListPage', () => {
 
     renderPage();
     await screen.findByText('영상 제목');
-    expect(screen.getByText('방치 경고')).toBeInTheDocument();
+    expect(screen.getByText('D+13')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: '나중에' }));
 
     expect(await screen.findByText('저장 일자를 초기화했습니다.')).toBeInTheDocument();
     expect(resetVideoDday).toHaveBeenCalledWith('v1');
-    expect(screen.queryByText('방치 경고')).not.toBeInTheDocument();
+    expect(screen.queryByText('D+13')).not.toBeInTheDocument();
   });
 
   it('보관하기 버튼을 누르면 보관 탭으로 이동하고 보관 해제로 되돌릴 수 있다', async () => {
@@ -263,14 +261,13 @@ describe('VideoListPage', () => {
     renderPage();
     await screen.findByText('보관할 영상');
 
-    fireEvent.click(screen.getByRole('button', { name: '보관하기' }));
+    fireEvent.click(screen.getByRole('button', { name: '보관' }));
 
     expect(await screen.findByText('영상을 보관했습니다.')).toBeInTheDocument();
     expect(setVideoArchived).toHaveBeenCalledWith('v1', true);
-    // 보관 탭 개수가 1로 올라가고, 카드 버튼은 '보관 해제'로 바뀐다.
-    expect(await screen.findByRole('button', { name: '보관 해제' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: '보관취소' })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: '보관 해제' }));
+    fireEvent.click(screen.getByRole('button', { name: '보관취소' }));
 
     expect(await screen.findByText('보관을 해제했습니다.')).toBeInTheDocument();
     expect(setVideoArchived).toHaveBeenLastCalledWith('v1', false);
@@ -292,17 +289,17 @@ describe('VideoListPage', () => {
     await screen.findByText('방치 영상');
 
     // 전체 3 / 정리 대상 1(보관 영상은 방치 판정 제외) / 보관 1
-    expect(screen.getByRole('button', { name: '전체 3' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '정리 대상 1' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '보관 1' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: '전체 3개' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: '정리 대상 1개' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: '보관 1개' })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: '정리 대상 1' }));
+    fireEvent.click(screen.getByRole('tab', { name: '정리 대상 1개' }));
 
     expect(screen.getByText('방치 영상')).toBeInTheDocument();
     expect(screen.queryByText('최근 영상')).not.toBeInTheDocument();
     expect(screen.queryByText('보관 영상')).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: '보관 1' }));
+    fireEvent.click(screen.getByRole('tab', { name: '보관 1개' }));
 
     expect(screen.getByText('보관 영상')).toBeInTheDocument();
     expect(screen.queryByText('방치 영상')).not.toBeInTheDocument();
@@ -340,7 +337,8 @@ describe('VideoListPage', () => {
     renderPage();
     await screen.findByText('삭제할 영상');
 
-    fireEvent.click(screen.getByRole('button', { name: '🗑 안볼래요' }));
+    fireEvent.click(screen.getByRole('button', { name: '안볼래요' }));
+    fireEvent.click(screen.getByRole('button', { name: '삭제' }));
 
     expect(await screen.findByText('처리 중…')).toBeInTheDocument();
     expect(deleteVideo).toHaveBeenCalledWith('v1');
@@ -362,7 +360,8 @@ describe('VideoListPage', () => {
     renderPage();
     await screen.findByText('삭제 실패 영상');
 
-    fireEvent.click(screen.getByRole('button', { name: '🗑 안볼래요' }));
+    fireEvent.click(screen.getByRole('button', { name: '안볼래요' }));
+    fireEvent.click(screen.getByRole('button', { name: '삭제' }));
 
     expect(
       await screen.findByText('영상을 삭제하지 못했습니다. 다시 시도해 주세요.'),
@@ -382,7 +381,7 @@ describe('VideoListPage', () => {
     renderPage();
     await screen.findByText('영상 제목');
 
-    fireEvent.click(screen.getByRole('button', { name: '영상 제목 유튜브에서 보기' }));
+    fireEvent.click(screen.getByRole('button', { name: '바로 보기' }));
 
     expect(openSpy).toHaveBeenCalledWith(
       'https://www.youtube.com/watch?v=abc123',
@@ -427,9 +426,9 @@ describe('VideoListPage', () => {
     expect(screen.queryByText('AI 요약을 생성하고 있습니다.')).not.toBeInTheDocument();
   });
 
-  it('영상이 4개 이하면 페이지네이션을 표시하지 않는다', async () => {
+  it('영상이 한 페이지 이하면 페이지네이션을 표시하지 않는다', async () => {
     fetchVideos.mockResolvedValue({
-      videos: Array.from({ length: 4 }, (_, i) =>
+      videos: Array.from({ length: 6 }, (_, i) =>
         makeVideo({ videoId: `v${i}`, title: `영상 ${i}` }),
       ),
       lastSyncedAt: null,
@@ -440,10 +439,12 @@ describe('VideoListPage', () => {
     renderPage();
     await screen.findByText('영상 0');
 
-    expect(screen.queryByRole('navigation', { name: '페이지 이동' })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('navigation', { name: '영상 목록 페이지' }),
+    ).not.toBeInTheDocument();
   });
 
-  it('영상이 4개를 넘으면 한 페이지에 4개씩 보여주고 페이지를 이동할 수 있다', async () => {
+  it('영상이 한 페이지를 넘으면 6개씩 보여주고 페이지를 이동할 수 있다', async () => {
     fetchVideos.mockResolvedValue({
       // 기본 정렬이 "저장 오래된 순"이므로 v0이 가장 오래된 영상이어야 첫 페이지에 온다.
       videos: Array.from({ length: 9 }, (_, i) =>
@@ -457,20 +458,18 @@ describe('VideoListPage', () => {
     renderPage();
     await screen.findByText('영상 0');
 
-    // 4개씩 3페이지(4/4/1)로 나뉜다.
-    expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(4);
-    expect(screen.getByRole('button', { name: '3' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: '4' })).not.toBeInTheDocument();
+    expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(6);
+    expect(screen.getByRole('button', { name: '2페이지' })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: '끝 »' }));
+    fireEvent.click(screen.getByRole('button', { name: '다음' }));
 
-    await screen.findByText('영상 8');
-    expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(1);
-    expect(screen.getByRole('button', { name: '끝 »' })).toBeDisabled();
+    await screen.findByText('영상 6');
+    expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(3);
+    expect(screen.getByRole('button', { name: '다음' })).toBeDisabled();
 
-    fireEvent.click(screen.getByRole('button', { name: '« 처음' }));
+    fireEvent.click(screen.getByRole('button', { name: '이전' }));
 
     await screen.findByText('영상 0');
-    expect(screen.getByRole('button', { name: '« 처음' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '이전' })).toBeDisabled();
   });
 });

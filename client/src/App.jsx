@@ -1,6 +1,7 @@
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { useEffect } from 'react';
+import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom';
 
-import GlobalNav from './components/GlobalNav.jsx';
+import LandingHeader from './components/LandingHeader.jsx';
 import SiteFooter from './components/SiteFooter.jsx';
 import AuthFailedPage from './pages/AuthFailedPage.jsx';
 import AuthLoadingPage from './pages/AuthLoadingPage.jsx';
@@ -14,10 +15,30 @@ import OAuthError from './pages/OAuthError.jsx';
 
 import './App.css';
 
-const App = () => (
-  <BrowserRouter>
-    <div className="app-shell">
-      <GlobalNav />
+const CHROME_PATHS = [
+  '/auth/loading',
+  '/auth/failed',
+  '/playlist-setup',
+  '/videos',
+  '/videos/bulk-import',
+  '/oauth/error',
+];
+
+const AppLayout = () => {
+  const { pathname, hash } = useLocation();
+  const showChrome = CHROME_PATHS.includes(pathname);
+
+  useEffect(() => {
+    if (hash) {
+      return;
+    }
+
+    window.scrollTo(0, 0);
+  }, [pathname, hash]);
+
+  return (
+    <div className={showChrome ? 'app-shell' : 'app-shell app-shell--guide'}>
+      <LandingHeader />
 
       <main className="app-shell__main">
         <Routes>
@@ -34,6 +55,12 @@ const App = () => (
 
       <SiteFooter />
     </div>
+  );
+};
+
+const App = () => (
+  <BrowserRouter>
+    <AppLayout />
   </BrowserRouter>
 );
 

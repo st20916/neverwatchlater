@@ -1,39 +1,20 @@
-.auth-loading {
-  min-height: 60vh;
-  display: grid;
-  place-items: center;
-}
-
-.auth-loading__spinner {
-  width: 44px;
-  height: 44px;
-  border-radius: var(--rounded-full);
-  border: 3px solid var(--color-surface-chip-translucent);
-  border-top-color: var(--color-primary);
-  animation: auth-spin 0.9s linear infinite;
-}
-
-.auth-loading__description {
-  color: var(--color-ink-muted-80);
-}
-
-.auth-loading__hint {
-  color: var(--color-ink-muted-48);
-}
-
-/* 프로토타입에서 후속 화면을 확인하기 위한 임시 진입점 */
 .auth-loading__actions {
-  margin-top: var(--spacing-lg);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm) var(--spacing-lg);
+  margin-top: var(--spacing-xl);
 }
 
-@keyframes auth-spin {
-  to {
-    transform: rotate(360deg);
-  }
+.auth-loading__actions a {
+  color: var(--nwl-soft-ink, rgba(37, 37, 40, 0.62));
+  font-family: var(--font-text);
+  font-size: 12px;
+  letter-spacing: -0.08px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .auth-loading__spinner {
-    animation: none;
-  }
+.auth-loading__actions a:hover,
+.auth-loading__actions a:focus-visible {
+  color: var(--nwl-ink, #252528);
 }

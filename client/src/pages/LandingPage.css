@@ -1,35 +1,22 @@
-.landing-hero__title,
-.landing-hero__tagline {
-  max-width: var(--content-max-reading);
+.nwl-page {
+  --nwl-ink: #252528;
+  --nwl-soft-ink: rgba(37, 37, 40, 0.62);
+  --nwl-line: rgba(37, 37, 40, 0.2);
+  --nwl-accent: #4e8f8b;
+  --nwl-background: #F7F4ED;
+  position: relative;
+  isolation: isolate;
+  color: var(--nwl-ink);
+  background: var(--nwl-background);
+  font-family: var(--font-text);
 }
 
-.landing-hero__tagline {
-  color: var(--color-ink-muted-80);
-}
-
-/* 히어로 이미지는 타일 좌우 패딩을 상쇄해 풀블리드로 놓는다. */
-.landing-hero__media {
-  width: calc(100% + var(--spacing-lg) * 2);
-  margin-top: var(--spacing-xxl);
-  margin-inline: calc(var(--spacing-lg) * -1);
-}
-
-.landing-tile__tagline {
-  max-width: 720px;
-}
-
-.landing-tile__media {
-  width: 100%;
-  max-width: 880px;
-  margin-top: var(--spacing-xl);
-}
-
-.landing-note {
-  color: var(--color-ink-muted-80);
-}
-
-@media (max-width: 735px) {
-  .landing-hero__media {
-    margin-top: var(--spacing-xl);
-  }
+.nwl-grain {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  opacity: 0.28;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.78' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.13'/%3E%3C/svg%3E");
+  mix-blend-mode: multiply;
 }
