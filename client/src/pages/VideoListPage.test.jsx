@@ -40,9 +40,9 @@ const makeVideo = (overrides = {}) => ({
   ...overrides,
 });
 
-const renderPage = () =>
+const renderPage = (entries = ['/videos']) =>
   render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={entries}>
       <VideoListPage />
     </MemoryRouter>,
   );
@@ -390,6 +390,21 @@ describe('VideoListPage', () => {
     );
   });
 
+  it('링크 대량 등록은 업로드 아이콘과 함께 벌크 등록 페이지로 연결한다', async () => {
+    fetchVideos.mockResolvedValue({
+      videos: [makeVideo()],
+      lastSyncedAt: null,
+      synced: true,
+      syncFailed: false,
+    });
+
+    renderPage();
+
+    const link = await screen.findByRole('link', { name: '링크 대량 등록' });
+    expect(link).toHaveAttribute('href', '/videos/bulk-import');
+    expect(link.querySelector('svg')).not.toBeNull();
+  });
+
   it('영상이 없으면 빈 상태 안내를 표시한다', async () => {
     fetchVideos.mockResolvedValue({
       videos: [],
@@ -471,5 +486,48 @@ describe('VideoListPage', () => {
 
     await screen.findByText('영상 0');
     expect(screen.getByRole('button', { name: '이전' })).toBeDisabled();
+  });
+
+  it('대량 등록 직후 진입하면 방금 등록한 영상을 보여주고 포커스한다', async () => {
+    const scrollIntoView = vi.fn();
+    HTMLElement.prototype.scrollIntoView = scrollIntoView;
+
+    fetchVideos.mockResolvedValue({
+      videos: [
+        ...Array.from({ length: 6 }, (_, i) =>
+          makeVideo({
+            videoId: `old-${i}`,
+            title: `오래된 영상 ${i}`,
+            savedAt: daysAgo(20 - i),
+          }),
+        ),
+        makeVideo({
+          videoId: 'imported',
+          title: '방금 등록한 영상',
+          savedAt: daysAgo(0),
+        }),
+      ],
+      lastSyncedAt: null,
+      synced: true,
+      syncFailed: false,
+    });
+
+    renderPage([
+      {
+        pathname: '/videos',
+        state: { importedVideoIds: ['imported'] },
+      },
+    ]);
+
+    expect(await screen.findByText('방금 등록한 영상')).toBeInTheDocument();
+    expect(screen.queryByText('오래된 영상 0')).not.toBeInTheDocument();
+    expect(document.getElementById('video-card-imported')).toHaveClass(
+      'video-card--highlight',
+    );
+    expect(
+      document.querySelector('.video-list-page__item--highlight'),
+    ).not.toBeNull();
+    expect(document.getElementById('video-card-imported')).toHaveFocus();
+    expect(scrollIntoView).toHaveBeenCalled();
   });
 });

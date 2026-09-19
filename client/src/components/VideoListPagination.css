@@ -32,6 +32,7 @@
   font-weight: 400;
   line-height: 1.29;
   letter-spacing: -0.224px;
+  cursor: pointer;
 }
 
 .video-pagination__control:hover:not(:disabled),

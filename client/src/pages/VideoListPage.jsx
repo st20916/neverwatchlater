@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 
 import {
   deleteVideo,
@@ -84,6 +84,24 @@ const SyncIcon = () => (
   </svg>
 );
 
+const UploadIcon = () => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M12 16V5" />
+    <path d="M7 10l5-5 5 5" />
+    <path d="M5 19h14" />
+  </svg>
+);
+
 const ChevronIcon = () => (
   <svg
     width="16"
@@ -137,13 +155,24 @@ const useStuckTabs = () => {
 };
 
 const VideoListPage = () => {
+  const location = useLocation();
+  const importedVideoIds = useMemo(() => {
+    const ids = location.state?.importedVideoIds;
+    return Array.isArray(ids) ? ids.filter(Boolean) : [];
+  }, [location.state]);
+  const importedVideoIdSet = useMemo(
+    () => new Set(importedVideoIds),
+    [importedVideoIds],
+  );
   const [status, setStatus] = useState('loading');
   const [videos, setVideos] = useState([]);
   const [lastSyncedAt, setLastSyncedAt] = useState(null);
   const [syncFailed, setSyncFailed] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [page, setPage] = useState(1);
-  const [sortKey, setSortKey] = useState(DEFAULT_SORT);
+  const [sortKey, setSortKey] = useState(
+    importedVideoIds.length > 0 ? 'savedRecent' : DEFAULT_SORT,
+  );
   const [sortOpen, setSortOpen] = useState(false);
   const [listTab, setListTab] = useState('all');
   const [pendingActions, setPendingActions] = useState(() => new Map());
@@ -153,14 +182,30 @@ const VideoListPage = () => {
   const { sentinelRef, stuck } = useStuckTabs();
   const rootRef = useRef(null);
   const sortRef = useRef(null);
+  const importPageAppliedRef = useRef(false);
+  const importFocusAppliedRef = useRef(false);
   useSectionReveal(rootRef);
 
-  const applyResult = (result) => {
+  const applyResult = useCallback((result) => {
     setVideos(result.videos);
     setLastSyncedAt(result.lastSyncedAt);
     setSyncFailed(Boolean(result.syncFailed));
+
+    if (!importPageAppliedRef.current && importedVideoIds.length > 0) {
+      const sorted = sortVideos(
+        result.videos.filter(TAB_FILTERS.all),
+        'savedRecent',
+      );
+      const firstIndex = sorted.findIndex((video) =>
+        importedVideoIds.includes(getVideoKey(video)),
+      );
+      importPageAppliedRef.current = true;
+      setPage(firstIndex >= 0 ? Math.floor(firstIndex / PAGE_SIZE) + 1 : 1);
+      return;
+    }
+
     setPage(1);
-  };
+  }, [importedVideoIds]);
 
   const visibleVideos = sortVideos(
     videos.filter(TAB_FILTERS[listTab]),
@@ -212,6 +257,35 @@ const VideoListPage = () => {
     setPage((prev) => Math.min(prev, totalPages));
   }, [totalPages]);
 
+  useEffect(() => {
+    if (
+      importFocusAppliedRef.current ||
+      status !== 'ready' ||
+      importedVideoIds.length === 0
+    ) {
+      return undefined;
+    }
+
+    const firstVisible = pageVideos.find((video) =>
+      importedVideoIds.includes(getVideoKey(video)),
+    );
+    if (!firstVisible) {
+      return undefined;
+    }
+
+    const card = document.getElementById(
+      `video-card-${getVideoKey(firstVisible)}`,
+    );
+    if (!card) {
+      return undefined;
+    }
+
+    importFocusAppliedRef.current = true;
+    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    card.focus({ preventScroll: true });
+    return undefined;
+  }, [importedVideoIds, pageVideos, status]);
+
   const load = useCallback(() => {
     fetchVideos()
       .then((result) => {
@@ -227,7 +301,7 @@ const VideoListPage = () => {
           setStatus('error');
         }
       });
-  }, []);
+  }, [applyResult]);
 
   useEffect(() => {
     load();
@@ -541,8 +615,8 @@ const VideoListPage = () => {
               aria-expanded={sortOpen}
               onClick={() => setSortOpen((open) => !open)}
             >
-              {SORT_OPTIONS.find((option) => option.value === sortKey)?.label}
               <ChevronIcon />
+              {SORT_OPTIONS.find((option) => option.value === sortKey)?.label}
             </button>
             {sortOpen ? (
               <ul
@@ -588,6 +662,7 @@ const VideoListPage = () => {
             {syncing ? '동기화 중…' : '목록 동기화'}
           </button>
           <Link to="/videos/bulk-import" className="video-list-page__sync-list">
+            <UploadIcon />
             링크 대량 등록
           </Link>
         </div>
@@ -607,12 +682,22 @@ const VideoListPage = () => {
               {pageVideos.map((video) => {
                 const videoId = getVideoKey(video);
 
+                const isHighlighted = importedVideoIdSet.has(videoId);
+
                 return (
-                  <li key={videoId}>
+                  <li
+                    key={videoId}
+                    className={
+                      isHighlighted
+                        ? 'video-list-page__item video-list-page__item--highlight'
+                        : 'video-list-page__item'
+                    }
+                  >
                     <VideoCard
                       video={video}
                       pendingAction={pendingActions.get(videoId) ?? null}
                       isRemoving={removingIds.has(videoId)}
+                      isHighlighted={isHighlighted}
                       onWatch={handleWatch}
                       onLater={handleLater}
                       onArchive={handleArchive}

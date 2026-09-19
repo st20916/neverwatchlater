@@ -25,7 +25,7 @@ const useCurrentUser = () => {
     };
   }, []);
 
-  return user;
+  return { user, setUser };
 };
 
 export default useCurrentUser;

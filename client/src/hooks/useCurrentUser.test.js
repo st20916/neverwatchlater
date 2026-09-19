@@ -21,7 +21,7 @@ describe('useCurrentUser', () => {
     const { result } = renderHook(() => useCurrentUser());
 
     await waitFor(() => {
-      expect(result.current).toEqual({
+      expect(result.current.user).toEqual({
         name: '효주',
         picture: 'https://example.com/photo.png',
       });
@@ -37,6 +37,6 @@ describe('useCurrentUser', () => {
       expect(fetchCurrentUser).toHaveBeenCalledTimes(1);
     });
 
-    expect(result.current).toBeNull();
+    expect(result.current.user).toBeNull();
   });
 });

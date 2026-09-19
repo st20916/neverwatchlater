@@ -104,6 +104,12 @@ describe('VideoCard', () => {
     expect(screen.getByText('썸네일 없음')).toBeInTheDocument();
   });
 
+  it('플랫폼 배지를 표시하지 않는다', () => {
+    renderCard(baseVideo);
+
+    expect(screen.queryByText('YOUTUBE')).not.toBeInTheDocument();
+  });
+
   it('썸네일 URL이 있으면 이미지를 표시하고 길이를 오버레이로 보여준다', () => {
     const { container } = renderCard({
       ...baseVideo,
@@ -123,6 +129,13 @@ describe('VideoCard', () => {
     fireEvent.click(screen.getByRole('button', { name: '안볼래요' }));
 
     expect(onDelete).toHaveBeenCalledWith(baseVideo);
+  });
+
+  it('하이라이트되면 해당 카드에 강조 클래스를 붙인다', () => {
+    const { container } = renderCard(baseVideo, { isHighlighted: true });
+    const card = container.querySelector('#video-card-v1');
+
+    expect(card).toHaveClass('video-card--highlight');
   });
 
   it('요청 처리 중에는 정리 액션을 비활성화한다', () => {

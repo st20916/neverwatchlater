@@ -151,6 +151,7 @@ const VideoCard = ({
   video,
   pendingAction = null,
   isRemoving = false,
+  isHighlighted = false,
   onWatch,
   onLater,
   onArchive,
@@ -169,9 +170,19 @@ const VideoCard = ({
   const summary = getSummaryBody(video);
   const archiveLabel = video.isArchived ? '보관취소' : '보관';
 
+  const cardClassName = [
+    'video-card',
+    isRemoving ? 'video-card--removing' : '',
+    isHighlighted ? 'video-card--highlight' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+
   return (
     <article
-      className={isRemoving ? 'video-card video-card--removing' : 'video-card'}
+      id={videoKey ? `video-card-${videoKey}` : undefined}
+      className={cardClassName}
+      tabIndex={-1}
     >
       <div
         className="video-card__thumb"
@@ -187,7 +198,6 @@ const VideoCard = ({
         ) : (
           <span className="video-card__visually-hidden">썸네일 없음</span>
         )}
-        <span className="video-card__platform">YOUTUBE</span>
         {badge ? (
           <span className={`video-card__badge video-card__badge--${badge.tone}`}>
             {badge.tone !== 'archived' ? <ClockIcon /> : null}

@@ -5,11 +5,27 @@
   --cream: #f5f3ed;
   --red: #c45c5a;
   --rule: var(--nwl-line, rgba(37, 37, 40, 0.2));
+  --card-pad-y: var(--spacing-sm);
+  --card-gap: var(--spacing-xs);
+  --source-h: 16px;
+  --title-h: calc(18px * 1.3);
+  --label-h: calc(12px * 1.3);
+  --bullet-h: calc(13px * 1.55 * 2);
+  --bullet-gap: 2px;
+  --actions-h: 40px;
+  --summary-h: calc(
+    var(--label-h) + var(--card-gap) + var(--bullet-h) * 3 + var(--bullet-gap) * 2
+  );
+  --body-h: calc(
+    var(--card-pad-y) * 2 + var(--source-h) + var(--title-h) + var(--summary-h) +
+      var(--actions-h) + var(--card-gap) * 3
+  );
+  --card-height: calc(var(--body-h) + 2px);
   position: relative;
   display: grid;
-  grid-template-columns: 260px minmax(0, 1fr);
+  grid-template-columns: calc((var(--card-height) - 2px) * 16 / 9) minmax(0, 1fr);
   width: 100%;
-  height: 280px;
+  height: var(--card-height);
   overflow: hidden;
   border: 1px solid var(--rule);
   background: rgba(247, 246, 241, 0.92);
@@ -23,10 +39,15 @@
   transform: translateX(var(--spacing-xl));
 }
 
+.video-card--highlight {
+  border-color: var(--teal);
+}
+
 .video-card__thumb {
   position: relative;
+  align-self: stretch;
+  width: 100%;
   height: 100%;
-  min-height: 0;
   overflow: hidden;
   color: var(--cream);
 }
@@ -46,21 +67,6 @@
   overflow: hidden;
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
-}
-
-.video-card__platform {
-  position: absolute;
-  top: var(--spacing-sm);
-  left: var(--spacing-sm);
-  z-index: 1;
-  padding: 4px 8px;
-  border-radius: var(--rounded-pill);
-  color: var(--cream);
-  background: var(--ink);
-  font-size: 10px;
-  font-weight: 500;
-  letter-spacing: 0.08em;
-  line-height: 1.3;
 }
 
 .video-card__badge {
@@ -114,6 +120,7 @@
   color: var(--cream);
   background: var(--teal);
   transform: translate(-50%, -50%);
+  cursor: pointer;
 }
 
 .video-card__play:hover:not(:disabled),
@@ -142,14 +149,17 @@
 .video-card__body {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-sm);
+  gap: var(--spacing-xs);
   min-width: 0;
   height: 100%;
-  padding: var(--spacing-md) var(--spacing-lg) var(--spacing-md) var(--spacing-md);
+  min-height: 0;
+  overflow: hidden;
+  padding: var(--spacing-sm) var(--spacing-lg) var(--spacing-sm) var(--spacing-md);
 }
 
 .video-card__source {
   display: flex;
+  flex-shrink: 0;
   align-items: center;
   gap: var(--spacing-xs);
   margin: 0;
@@ -190,26 +200,27 @@
 }
 
 .video-card__body h3 {
-  display: -webkit-box;
+  flex-shrink: 0;
   margin: 0;
-  min-height: calc(21px * 1.3 * 2);
+  min-width: 0;
   overflow: hidden;
   color: var(--ink);
   font-family: var(--font-display);
-  font-size: 21px;
+  font-size: 18px;
   font-weight: 700;
   letter-spacing: -0.2px;
   line-height: 1.3;
-  word-break: keep-all;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .video-card__summary {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-xs);
-  min-height: calc(12px * 1.3 + 13px * 1.55 * 3);
+  flex: 1 1 auto;
+  gap: var(--card-gap);
+  min-height: var(--summary-h);
+  overflow: hidden;
 }
 
 .video-card__summary-label {
@@ -244,7 +255,7 @@
   line-height: 1.55;
   word-break: keep-all;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 1;
+  -webkit-line-clamp: 2;
 }
 
 .video-card__summary li + li {
@@ -265,11 +276,12 @@
 .video-card__summary-missing {
   display: -webkit-box;
   padding-left: 0;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 6;
 }
 
 .video-card__actions {
   display: flex;
+  flex-shrink: 0;
   flex-wrap: nowrap;
   align-items: center;
   gap: var(--spacing-xs);
@@ -292,6 +304,7 @@
   line-height: 1.29;
   letter-spacing: -0.224px;
   white-space: nowrap;
+  cursor: pointer;
 }
 
 .video-card__action--archive {
@@ -336,13 +349,6 @@
     aspect-ratio: 16 / 9;
   }
 
-  .video-card__platform {
-    padding: 5px 10px;
-    border-radius: var(--rounded-pill);
-    color: var(--cream);
-    background: rgba(37, 37, 40, 0.55);
-  }
-
   .video-card__play {
     width: 56px;
     height: 56px;
@@ -357,8 +363,14 @@
   }
 
   .video-card__body h3 {
-    font-size: 20px;
+    display: -webkit-box;
     min-height: calc(20px * 1.3 * 2);
+    font-size: 20px;
+    text-overflow: unset;
+    white-space: normal;
+    word-break: keep-all;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
   }
 
   .video-card__summary {

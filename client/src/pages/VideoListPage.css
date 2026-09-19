@@ -194,6 +194,8 @@
   font-weight: 400;
   line-height: 1.29;
   letter-spacing: -0.224px;
+  text-decoration: none;
+  cursor: pointer;
 }
 
 .video-list-page__retry:hover,
@@ -253,6 +255,7 @@
   font-weight: 500;
   letter-spacing: -0.224px;
   line-height: 1.43;
+  cursor: pointer;
 }
 
 .video-list-page__tab--selected {
@@ -342,6 +345,8 @@
   line-height: 1.29;
   letter-spacing: -0.224px;
   white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
 }
 
 .video-list-page__sort-trigger,
@@ -356,8 +361,8 @@
   height: 16px;
 }
 
-.video-list-page__sort-trigger svg:last-child {
-  margin-left: 2px;
+.video-list-page__sort-trigger svg:first-child {
+  margin-right: 2px;
   transition: transform 180ms ease;
 }
 
@@ -366,7 +371,7 @@
   border-color: var(--ink);
 }
 
-.video-list-page__sort-trigger--open svg:last-child {
+.video-list-page__sort-trigger--open svg:first-child {
   transform: rotate(180deg);
 }
 
@@ -427,6 +432,15 @@
 .video-list-page__items .video-card {
   width: 100%;
   min-width: 0;
+}
+
+.video-list-page__item {
+  scroll-margin-top: calc(var(--nwl-header-height, 60px) + 72px);
+}
+
+.video-list-page__item--highlight {
+  outline: 2px solid var(--teal);
+  outline-offset: 2px;
 }
 
 .video-list-page__empty {
@@ -574,14 +588,37 @@
 
   .video-list-page__toolbar,
   .video-list-page__toolbar-actions {
-    justify-content: flex-end;
+    justify-content: stretch;
+  }
+
+  .video-list-page__toolbar-actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .video-list-page__sort,
+  .video-list-page__sort-trigger,
+  .video-list-page__sync-list {
+    width: 100%;
+    min-width: 0;
   }
 
   .video-list-page__sort-trigger,
   .video-list-page__sync-list {
-    min-width: 0;
-    min-height: 36px;
-    padding: 6px 12px;
+    min-height: 44px;
+    padding: 6px 6px;
+    font-size: 12px;
+    white-space: normal;
+    word-break: keep-all;
+    text-align: center;
+    line-height: 1.25;
+  }
+
+  .video-list-page__sort-menu {
+    left: 0;
+    right: auto;
+    min-width: max-content;
   }
 }
 

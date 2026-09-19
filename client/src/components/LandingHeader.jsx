@@ -1,8 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 
+import { logout } from "../api/authApi";
 import { PRIMARY_NAV, getNavTo } from "../data/navigation.js";
 import useCurrentUser from "../hooks/useCurrentUser.js";
+
+import ConfirmDialog from "./ConfirmDialog.jsx";
+import Toast from "./Toast.jsx";
 
 import "./LandingHeader.css";
 
@@ -11,13 +15,20 @@ const navLinkClass = ({ isActive }) =>
     ? "nwl-header-link nwl-header-link--active type-nav-link"
     : "nwl-header-link type-nav-link";
 
-const AccountStatus = ({ user }) => {
+const AccountStatus = ({ user, onLogoutClick }) => {
   const displayName = user.name?.trim();
+  const labeledName = displayName ? `${displayName}님` : "";
+  const ariaLabel = labeledName ? `${labeledName}, 로그아웃` : "로그아웃";
 
   return (
-    <div className="nwl-account" aria-label={displayName || "로그인됨"}>
-      {displayName ? (
-        <span className="nwl-account-name type-nav-link">{displayName}</span>
+    <button
+      type="button"
+      className="nwl-account"
+      aria-label={ariaLabel}
+      onClick={onLogoutClick}
+    >
+      {labeledName ? (
+        <span className="nwl-account-name type-nav-link">{labeledName}</span>
       ) : null}
       {user.picture ? (
         <img
@@ -33,7 +44,7 @@ const AccountStatus = ({ user }) => {
           {displayName?.slice(0, 1) || "?"}
         </span>
       )}
-    </div>
+    </button>
   );
 };
 
@@ -58,9 +69,13 @@ const LoginStatus = () => (
 
 const LandingHeader = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [confirmLogout, setConfirmLogout] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
+  const [toast, setToast] = useState(null);
   const menuButtonRef = useRef(null);
   const trayRef = useRef(null);
-  const user = useCurrentUser();
+  const navigate = useNavigate();
+  const { user, setUser } = useCurrentUser();
 
   useEffect(() => {
     if (!isMenuOpen) {
@@ -106,7 +121,14 @@ const LandingHeader = () => {
         </nav>
 
         <div className="nwl-header-actions">
-          {user ? <AccountStatus user={user} /> : <LoginStatus />}
+          {user ? (
+            <AccountStatus
+              user={user}
+              onLogoutClick={() => setConfirmLogout(true)}
+            />
+          ) : (
+            <LoginStatus />
+          )}
 
           <button
             ref={menuButtonRef}
@@ -166,6 +188,46 @@ const LandingHeader = () => {
           </NavLink>
         ))}
       </nav>
+
+      {confirmLogout ? (
+        <ConfirmDialog
+          title="로그아웃할까요?"
+          description="로그인 상태가 해제됩니다."
+          confirmLabel="로그아웃"
+          cancelLabel="취소"
+          onConfirm={() => {
+            if (loggingOut) {
+              return;
+            }
+
+            setLoggingOut(true);
+            logout()
+              .then(() => {
+                setUser(null);
+                setConfirmLogout(false);
+                navigate("/");
+              })
+              .catch(() => {
+                setToast({
+                  tone: "error",
+                  message: "로그아웃하지 못했습니다. 다시 시도해 주세요.",
+                });
+              })
+              .finally(() => {
+                setLoggingOut(false);
+              });
+          }}
+          onCancel={() => setConfirmLogout(false)}
+        />
+      ) : null}
+
+      {toast ? (
+        <Toast
+          message={toast.message}
+          tone={toast.tone}
+          onClose={() => setToast(null)}
+        />
+      ) : null}
     </header>
   );
 };
