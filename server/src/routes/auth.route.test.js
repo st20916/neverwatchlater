@@ -24,13 +24,40 @@ test('GET /api/auth/google은 Google 동의 화면으로 리다이렉트한다',
   });
 });
 
-test('GET /api/auth/me는 로그인하지 않은 경우 401을 반환한다', async () => {
+test('GET /api/auth/me는 로그인하지 않은 경우 401을 반환하고 sid 쿠키를 지운다', async () => {
   await withServer(async (baseUrl) => {
-    const res = await fetch(`${baseUrl}/api/auth/me`);
+    const res = await fetch(`${baseUrl}/api/auth/me`, {
+      headers: { Cookie: 'sid=stale-session-id' },
+    });
     const data = await res.json();
 
     assert.equal(res.status, 401);
     assert.equal(data.message, '로그인이 필요합니다.');
+
+    const setCookie = res.headers.getSetCookie?.() ?? [];
+    const cleared = setCookie.some(
+      (value) => value.startsWith('sid=') && /Max-Age=0|Expires=/i.test(value)
+    );
+    assert.equal(cleared, true);
+  });
+});
+
+test('POST /api/auth/logout은 sid 쿠키를 지운다', async () => {
+  await withServer(async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/api/auth/logout`, {
+      method: 'POST',
+      headers: { Cookie: 'sid=stale-session-id' },
+    });
+    const data = await res.json();
+
+    assert.equal(res.status, 200);
+    assert.equal(data.message, '로그아웃 되었습니다.');
+
+    const setCookie = res.headers.getSetCookie?.() ?? [];
+    const cleared = setCookie.some(
+      (value) => value.startsWith('sid=') && /Max-Age=0|Expires=/i.test(value)
+    );
+    assert.equal(cleared, true);
   });
 });
 

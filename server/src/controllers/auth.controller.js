@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 
 import { env } from '../config/env.js';
+import { clearSessionCookie } from '../config/session.js';
 import {
   exchangeCodeForTokens,
   getGoogleAuthUrl,
@@ -95,9 +96,11 @@ export const handleGoogleCallback = async (req, res) => {
 /**
  * GET /api/auth/me
  * 현재 로그인된 사용자 정보를 반환한다. 토큰 값은 절대 응답에 포함하지 않는다.
+ * 세션이 없거나 만료된 경우 401과 함께 sid 쿠키도 지워 브라우저에 잔여 쿠키가 남지 않게 한다.
  */
 export const getMe = (req, res) => {
   if (!req.session?.user) {
+    clearSessionCookie(res);
     return res.status(401).json({ message: '로그인이 필요합니다.' });
   }
 
@@ -106,7 +109,7 @@ export const getMe = (req, res) => {
 
 /**
  * POST /api/auth/logout
- * Google 토큰을 폐기(best-effort)하고 세션을 삭제한다.
+ * Google 토큰을 폐기(best-effort)하고 세션·sid 쿠키를 함께 삭제한다.
  * (docs/security.md 3절: 로그아웃은 감사 로그로 남긴다 — 토큰 값은 남기지 않는다.)
  */
 export const logout = async (req, res, next) => {
@@ -121,14 +124,24 @@ export const logout = async (req, res, next) => {
       });
     }
 
-    req.session.destroy((err) => {
-      if (err) return next(err);
+    const finishLogout = () => {
+      clearSessionCookie(res);
 
       if (userId) {
         console.info(`[audit] logout userId=${userId} at=${new Date().toISOString()}`);
       }
 
       res.status(200).json({ message: '로그아웃 되었습니다.' });
+    };
+
+    // 세션이 이미 없거나 destroy를 쓸 수 없으면 쿠키만 지우고 끝낸다.
+    if (!req.session) {
+      return finishLogout();
+    }
+
+    req.session.destroy((err) => {
+      if (err) return next(err);
+      finishLogout();
     });
   } catch (err) {
     next(err);

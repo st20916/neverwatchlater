@@ -4,6 +4,7 @@ import session from 'express-session';
 import morgan from 'morgan';
 
 import { env, isProduction } from './config/env.js';
+import { sessionMiddlewareOptions } from './config/session.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 import { notFound } from './middlewares/notFound.js';
 import routes from './routes/index.js';
@@ -23,20 +24,7 @@ app.use(morgan(isProduction ? 'combined' : 'dev'));
 // docs/security.md 3절: HttpOnly, Secure(운영), SameSite=Lax 이상.
 // TODO(확정필요, docs/product-specs/auth.md 2절): 기본 MemoryStore는 운영에 부적합하다.
 // 운영 배포 전 Redis 등 영속 세션 스토어로 교체해야 한다.
-app.use(
-  session({
-    name: 'sid',
-    secret: env.session.secret,
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      httpOnly: true,
-      secure: isProduction,
-      sameSite: 'lax',
-      maxAge: 1000 * 60 * 60 * 24, // 24시간
-    },
-  })
-);
+app.use(session(sessionMiddlewareOptions));
 
 app.use('/api', routes);
 
