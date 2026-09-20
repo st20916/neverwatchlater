@@ -39,7 +39,7 @@ describe('LandingPage', () => {
     ).toHaveAttribute('href', '/auth/loading');
     expect(screen.getByRole('heading', { name: '바로 보기' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: '나중에' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: '안볼래요' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '정리완료' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: '보관하기' })).toBeInTheDocument();
     expect(
       screen.getByRole('heading', { name: '일의 본질을 다시 생각하는 시간' }),

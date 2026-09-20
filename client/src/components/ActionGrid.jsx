@@ -23,7 +23,7 @@ const ACTION_CARDS = [
     id: '03',
     tone: 'alert',
     english: 'LET IT GO',
-    title: '안볼래요',
+    title: '정리완료',
     body: '확인 후 전용 재생목록과 서비스 목록에서 삭제해요.',
   },
   {

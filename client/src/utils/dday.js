@@ -1,6 +1,6 @@
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
-export const NEGLECT_THRESHOLD_DAYS = 7;
+export const NEGLECT_THRESHOLD_DAYS = 2;
 
 const startOfDay = (value) => {
   const date = new Date(value);
@@ -30,7 +30,7 @@ export const getDdayCount = (savedAt, now = new Date()) =>
  * 카드에 표시할 D-Day 상태를 계산한다.
  * - 보관 상태 영상은 저장 경과일과 관계없이 방치 판정에서 제외한다.
  * - 저장 일자가 없는 영상에는 방치 경고를 표시하지 않는다.
- * - D+N이 7을 초과(D+8부터)하면 정리 대상으로 본다.
+ * - D+N이 2를 초과(D+3부터)하면 정리 대상으로 본다.
  */
 export const getDdayState = (video, now = new Date()) => {
   if (video.isArchived) {

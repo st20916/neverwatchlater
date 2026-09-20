@@ -33,7 +33,7 @@ export async function syncVideosNow() {
 }
 
 /**
- * "안볼래요" — 유튜브 재생목록과 로컬 목록 양쪽에서 영상을 제거한다.
+ * "정리완료" — 유튜브 재생목록과 로컬 목록 양쪽에서 영상을 제거한다.
  */
 export async function deleteVideo(videoId) {
   const res = await fetch(`${API_BASE_URL}/api/videos/${videoId}`, {

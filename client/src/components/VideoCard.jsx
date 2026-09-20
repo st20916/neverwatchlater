@@ -267,7 +267,7 @@ const VideoCard = ({
             onClick={() => onDelete(video)}
           >
             <CheckIcon />
-            {pendingAction === 'delete' ? '처리 중…' : '안볼래요'}
+            {pendingAction === 'delete' ? '처리 중…' : '정리완료'}
           </button>
         </div>
       </div>

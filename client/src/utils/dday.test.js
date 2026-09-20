@@ -13,13 +13,13 @@ describe('dday', () => {
     expect(getDdayCount('2026-09-19T23:30:00', at('2026-09-20T08:00:00'))).toBe(2);
   });
 
-  it('D+7까지는 정리 대상이 아니고 D+8부터 정리 대상이다', () => {
+  it('D+2까지는 정리 대상이 아니고 D+3부터 정리 대상이다', () => {
     const now = at('2026-09-20T12:00:00');
-    const day7 = getDdayState({ savedAt: '2026-09-14T12:00:00' }, now);
-    const day8 = getDdayState({ savedAt: '2026-09-13T12:00:00' }, now);
+    const day2 = getDdayState({ savedAt: '2026-09-19T12:00:00' }, now);
+    const day3 = getDdayState({ savedAt: '2026-09-18T12:00:00' }, now);
 
-    expect(day7).toMatchObject({ dday: 7, isNeglected: false, tone: 'neutral' });
-    expect(day8).toMatchObject({ dday: 8, isNeglected: true, tone: 'warning' });
+    expect(day2).toMatchObject({ dday: 2, isNeglected: false, tone: 'neutral' });
+    expect(day3).toMatchObject({ dday: 3, isNeglected: true, tone: 'warning' });
   });
 
   it('배지는 두 자리 D+NN 으로 표시한다', () => {

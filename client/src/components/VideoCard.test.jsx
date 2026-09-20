@@ -36,7 +36,7 @@ const renderCard = (video, props = {}) =>
   );
 
 describe('VideoCard', () => {
-  it('7일을 초과한 영상에 D-Day 경고를 표시한다', () => {
+  it('D+3부터 D-Day 경고를 표시한다', () => {
     // 10일 전 저장 → 저장 당일 D+1이므로 D+11
     renderCard(baseVideo);
 
@@ -45,10 +45,10 @@ describe('VideoCard', () => {
     expect(badge).toHaveClass('video-card__badge--warning');
   });
 
-  it('7일 이하 영상에는 방치 경고를 표시하지 않는다', () => {
-    renderCard({ ...baseVideo, savedAt: daysAgo(3) });
+  it('D+2까지는 방치 경고를 표시하지 않는다', () => {
+    renderCard({ ...baseVideo, savedAt: daysAgo(1) });
 
-    const badge = screen.getByText('D+04');
+    const badge = screen.getByText('D+02');
     expect(badge).toBeInTheDocument();
     expect(badge).toHaveClass('video-card__badge--neutral');
   });
@@ -126,7 +126,7 @@ describe('VideoCard', () => {
     const onDelete = vi.fn();
     renderCard(baseVideo, { onDelete });
 
-    fireEvent.click(screen.getByRole('button', { name: '안볼래요' }));
+    fireEvent.click(screen.getByRole('button', { name: '정리완료' }));
 
     expect(onDelete).toHaveBeenCalledWith(baseVideo);
   });

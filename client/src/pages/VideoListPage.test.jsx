@@ -362,7 +362,7 @@ describe('VideoListPage', () => {
     expect(titles).toEqual(['오래된 영상', '최근 영상', '보관 영상']);
   });
 
-  it('안볼래요 버튼을 누르면 삭제 API를 호출하고 성공하면 목록에서 사라진다', async () => {
+  it('정리완료 버튼을 누르면 삭제 API를 호출하고 성공하면 목록에서 사라진다', async () => {
     fetchVideos.mockResolvedValue({
       videos: [makeVideo({ videoId: 'v1', title: '삭제할 영상' })],
       lastSyncedAt: null,
@@ -374,7 +374,7 @@ describe('VideoListPage', () => {
     renderPage();
     await screen.findByText('삭제할 영상');
 
-    fireEvent.click(screen.getByRole('button', { name: '안볼래요' }));
+    fireEvent.click(screen.getByRole('button', { name: '정리완료' }));
     fireEvent.click(screen.getByRole('button', { name: '삭제' }));
 
     expect(await screen.findByText('처리 중…')).toBeInTheDocument();
@@ -385,7 +385,7 @@ describe('VideoListPage', () => {
     });
   });
 
-  it('안볼래요가 실패하면 오류 토스트를 표시하고 목록은 그대로 유지한다', async () => {
+  it('정리완료가 실패하면 오류 토스트를 표시하고 목록은 그대로 유지한다', async () => {
     fetchVideos.mockResolvedValue({
       videos: [makeVideo({ videoId: 'v1', title: '삭제 실패 영상' })],
       lastSyncedAt: null,
@@ -397,7 +397,7 @@ describe('VideoListPage', () => {
     renderPage();
     await screen.findByText('삭제 실패 영상');
 
-    fireEvent.click(screen.getByRole('button', { name: '안볼래요' }));
+    fireEvent.click(screen.getByRole('button', { name: '정리완료' }));
     fireEvent.click(screen.getByRole('button', { name: '삭제' }));
 
     expect(
