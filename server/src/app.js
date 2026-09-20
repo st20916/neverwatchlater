@@ -1,34 +1,37 @@
 import cors from 'cors';
 import express from 'express';
-import session from 'express-session';
 import morgan from 'morgan';
 
 import { env, isProduction } from './config/env.js';
-import { sessionMiddlewareOptions } from './config/session.js';
+import { createSessionMiddleware } from './config/session.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 import { notFound } from './middlewares/notFound.js';
 import routes from './routes/index.js';
 
-const app = express();
+/** Express 앱을 생성한다. 세션은 express-session 기본 MemoryStore를 사용한다. */
+export function createApp() {
+  const app = express();
 
-// 배포 환경에서 리버스 프록시(HTTPS 종료) 뒤에 있을 때 secure 쿠키가 정상 동작하도록 설정.
-if (isProduction) {
-  app.set('trust proxy', 1);
+  // 배포 환경에서 리버스 프록시(HTTPS 종료) 뒤에 있을 때 secure 쿠키가 정상 동작하도록 설정.
+  if (isProduction) {
+    app.set('trust proxy', 1);
+  }
+
+  app.use(cors({ origin: env.clientOrigin, credentials: true }));
+  app.use(express.json());
+  app.use(express.urlencoded({ extended: true }));
+  app.use(morgan(isProduction ? 'combined' : 'dev'));
+
+  // docs/security.md 3절: HttpOnly, Secure(운영), SameSite=None(운영)/Lax(로컬).
+  app.use(createSessionMiddleware());
+
+  app.use('/api', routes);
+
+  app.use(notFound);
+  app.use(errorHandler);
+
+  return app;
 }
 
-app.use(cors({ origin: env.clientOrigin, credentials: true }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(morgan(isProduction ? 'combined' : 'dev'));
-
-// docs/security.md 3절: HttpOnly, Secure(운영), SameSite=Lax 이상.
-// TODO(확정필요, docs/product-specs/auth.md 2절): 기본 MemoryStore는 운영에 부적합하다.
-// 운영 배포 전 Redis 등 영속 세션 스토어로 교체해야 한다.
-app.use(session(sessionMiddlewareOptions));
-
-app.use('/api', routes);
-
-app.use(notFound);
-app.use(errorHandler);
-
+const app = createApp();
 export default app;

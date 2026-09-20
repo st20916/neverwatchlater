@@ -42,11 +42,13 @@
 
 ## 2. 토큰 저장 & 암호화
 
-- 액세스/리프레시 토큰은 현재 `express-session`(서버 메모리, `MemoryStore`)에만 저장한다.
-  `server/src/app.js`의 세션 쿠키는 `HttpOnly`, `SameSite=Lax`, 운영 환경에서는 `Secure`.
+- 액세스/리프레시 토큰은 `express-session`(기본 `MemoryStore`)에 저장한다.
+  서버 재시작·다중 인스턴스에서는 세션이 공유되지 않으므로 Cloudtype replica는 1로
+  유지하는 것이 안전하다.
+  - 세션 쿠키: `HttpOnly`; 로컬 `SameSite=Lax`; 운영 `Secure` + `SameSite=None`
+    (Vercel↔Cloudtype 등 크로스 오리진 `fetch`에 sid 포함)
+    (`server/src/config/session.js`).
 - `TODO(확정필요)`:
-  - 운영 배포 전 `MemoryStore`를 Redis 등 영속 세션 스토어로 교체한다
-    (재시작/스케일아웃 시 세션 유지 필요).
   - 리프레시 토큰을 세션이 아닌 별도 저장소에 **암호화(예: AES-256-GCM)** 하여 보관할지
     결정한다. 현재는 세션에만 있어 세션 만료 시 함께 사라진다.
 - 토큰 갱신 로직은 `providers/google-oauth.js`(`refreshAccessToken`) 한 곳에만 둔다.
@@ -64,11 +66,16 @@
 
 ## 4. 세션 & CSRF
 
-- 세션 쿠키 옵션: `HttpOnly`, `Secure`(운영), `SameSite=Lax` (`server/src/app.js`).
+- 세션 쿠키 옵션: `HttpOnly`; 로컬 `SameSite=Lax`; 운영 `Secure` + `SameSite=None`
+  (`server/src/config/session.js`). 프론트(예: Vercel)와 API(예: Cloudtype)가 다른
+  사이트이면 Lax로는 `/api/auth/me` 등 cross-site fetch에 쿠키가 실리지 않는다.
+- 세션 스토어: express-session 기본 `MemoryStore`(프로세스 메모리).
 - OAuth 콜백은 세션에 저장한 랜덤 `state` 값과 콜백 파라미터의 `state`를 대조해 CSRF를
-  방지한다 (`redirectToGoogle`/`handleGoogleCallback`).
+  방지한다 (`redirectToGoogle`/`handleGoogleCallback`). Google로 redirect하기 전
+  `req.session.save()`로 flush한다.
 - `CLIENT_ORIGIN`만 CORS를 허용하고 `credentials: true`로 제한해 다른 origin의 요청을
-  차단한다.
+  차단한다. 배포 시 `CLIENT_ORIGIN`은 프론트 URL과 **정확히** 같아야 한다
+  (예: `https://neverwatchlater-wine.vercel.app`, trailing slash 없이).
 - 로그인 성공/로그아웃은 `console.info('[audit] ...')`로 구조적 감사 로그를 남기며, 토큰
   값은 로그에 남기지 않는다. `TODO(확정필요)`: 실제 운영에서는 전용 로거(파일/외부 로그
   수집기)로 교체한다.
@@ -82,6 +89,7 @@ GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 GOOGLE_REDIRECT_URI=http://localhost:4000/api/auth/google/callback
 SESSION_SECRET=
+MONGODB_URI=
 ```
 
 - Google Cloud Console에서 발급받은 OAuth 클라이언트(`client_secret*.json`)의 `client_id`,

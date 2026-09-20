@@ -60,8 +60,6 @@
 
 ### TODO(확정필요) — 운영 전 정리 필요
 
-- `express-session` 기본 MemoryStore는 다중 인스턴스에 부적합하다. 운영 배포 전 Redis 등
-  영속 세션 스토어로 교체가 필요하다.
 - `findPlaylistByTitle`은 매 설정 요청마다 저장소에 기록이 없을 때만 YouTube를 조회한다.
   사용자가 YouTube에서 직접 재생목록 이름을 바꾸거나 삭제해도 로컬 기록은 갱신되지 않는다.
   필요하면 주기적 재검증(예: `GET /api/playlists/me`에서 YouTube에 실존 여부 확인) 로직을

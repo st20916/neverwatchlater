@@ -141,7 +141,7 @@ Invoke-WebRequest -Uri "http://localhost:4000/api/auth/google/callback" -Maximum
   검증합니다.
 - 재생목록/영상 데이터는 MongoDB Atlas(`users`, `videos` 컬렉션)에 저장한다.
   `server/.env`의 `MONGODB_URI`(Atlas `mongodb+srv://...`)가 설정되어 있어야 서버가 기동된다.
-  세션은 여전히 MemoryStore라 다중 인스턴스 운영 시 별도 세션 스토어가 필요하다
-  (`docs/product-specs/playlist.md` "TODO(확정필요)" 참고).
+  로그인/OAuth 세션은 express-session 기본 MemoryStore에 둔다. 다중 인스턴스에서는
+  세션이 공유되지 않으므로 배포 시 replica는 1을 권장한다 (`docs/product-specs/auth.md` 참고).
 - `client/src/pages/OAuthSuccess.jsx`, `OAuthError.jsx`, `OAuthTest.css`,
   `client/src/api/authApi.js`는 테스트 전용 화면으로, 정식 UI가 만들어지면 삭제될 예정입니다.

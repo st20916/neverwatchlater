@@ -24,7 +24,8 @@
 
 ## 3. 세션
 
-- 세션 쿠키는 `HttpOnly`, `Secure`, `SameSite=Lax` 이상.
+- 세션 쿠키는 `HttpOnly`를 필수. 운영(프론트·API 도메인 분리)은 `Secure` +
+  `SameSite=None`(크로스 사이트 `credentials` 요청에 쿠키 포함). 로컬은 `SameSite=Lax`.
 - 상태 변경 요청은 CSRF 방어를 갖는다.
 - 로그인·로그아웃·권한 변경은 감사 로그(구조적 로그)로 남긴다. 토큰 값은 남기지 않는다.
 

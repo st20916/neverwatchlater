@@ -1,4 +1,4 @@
-import app from './app.js';
+import { createApp } from './app.js';
 import { assertRequiredEnv, env } from './config/env.js';
 import { connectMongo } from './config/mongo.js';
 
@@ -12,6 +12,8 @@ try {
   console.error(err.message);
   process.exit(1);
 }
+
+const app = createApp();
 
 app.listen(env.port, () => {
   console.log(`🚀 서버가 http://localhost:${env.port} 에서 실행 중입니다. (${env.nodeEnv})`);

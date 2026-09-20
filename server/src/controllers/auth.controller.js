@@ -13,12 +13,17 @@ import {
  * GET /api/auth/google
  * 사용자를 Google 로그인 동의 화면으로 리다이렉트한다.
  * CSRF 방지를 위해 랜덤 state 값을 세션에 저장하고 콜백에서 검증한다.
+ * redirect 전에 session.save로 flush해, 배포 환경에서 쿠키/스토어에 state가
+ * 확실히 반영된 뒤 Google로 넘어가도록 한다.
  */
-export const redirectToGoogle = (req, res) => {
+export const redirectToGoogle = (req, res, next) => {
   const state = crypto.randomBytes(16).toString('hex');
   req.session.oauthState = state;
 
-  res.redirect(getGoogleAuthUrl(state));
+  req.session.save((err) => {
+    if (err) return next(err);
+    res.redirect(getGoogleAuthUrl(state));
+  });
 };
 
 /**
