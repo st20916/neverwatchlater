@@ -5,7 +5,7 @@ import { API_BASE_URL } from './config';
  * 그 값을 반환한다(멱등적). 로그인 세션이 필요하다.
  */
 export async function setupDedicatedPlaylist() {
-  const res = await fetch(`${API_BASE_URL}/api/playlists/setup`, {
+  const res = await fetch(`${API_BASE_URL}api/playlists/setup`, {
     method: 'POST',
     credentials: 'include',
   });
@@ -27,7 +27,7 @@ export async function setupDedicatedPlaylist() {
  * 저장소에 기록된 현재 재생목록 상태를 조회한다(YouTube 재조회 없음). 로그인 세션이 필요하다.
  */
 export async function getPlaylistStatus() {
-  const res = await fetch(`${API_BASE_URL}/api/playlists/me`, {
+  const res = await fetch(`${API_BASE_URL}api/playlists/me`, {
     credentials: 'include',
   });
 

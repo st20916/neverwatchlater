@@ -6,7 +6,7 @@ import { API_BASE_URL } from './config';
  * (OAuth 동의 화면은 top-level navigation이 필요함).
  */
 export function getGoogleLoginUrl() {
-  return `${API_BASE_URL}/api/auth/google`;
+  return `${API_BASE_URL}api/auth/google`;
 }
 
 /**
@@ -14,7 +14,7 @@ export function getGoogleLoginUrl() {
  * 세션 쿠키를 함께 보내야 하므로 credentials: 'include'가 필요하다.
  */
 export async function fetchCurrentUser() {
-  const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
+  const res = await fetch(`${API_BASE_URL}api/auth/me`, {
     credentials: 'include',
   });
 
@@ -31,7 +31,7 @@ export async function fetchCurrentUser() {
  * 로그아웃한다(서버 세션 삭제 + Google 토큰 폐기 best-effort).
  */
 export async function logout() {
-  const res = await fetch(`${API_BASE_URL}/api/auth/logout`, {
+  const res = await fetch(`${API_BASE_URL}api/auth/logout`, {
     method: 'POST',
     credentials: 'include',
   });

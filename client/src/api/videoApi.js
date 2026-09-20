@@ -17,7 +17,7 @@ async function parseResponse(res, fallbackMessage) {
  * 자동으로 재동기화한다. 전용 재생목록이 없으면 409, 로그인하지 않았으면 401을 던진다.
  */
 export async function fetchVideos() {
-  const res = await fetch(`${API_BASE_URL}/api/videos`, { credentials: 'include' });
+  const res = await fetch(`${API_BASE_URL}api/videos`, { credentials: 'include' });
   return parseResponse(res, '영상 목록을 불러오지 못했습니다.'); // { videos, lastSyncedAt, synced, syncFailed }
 }
 
@@ -25,7 +25,7 @@ export async function fetchVideos() {
  * 3일 주기와 상관없이 즉시 동기화한다("지금 동기화" 버튼용).
  */
 export async function syncVideosNow() {
-  const res = await fetch(`${API_BASE_URL}/api/videos/sync`, {
+  const res = await fetch(`${API_BASE_URL}api/videos/sync`, {
     method: 'POST',
     credentials: 'include',
   });
@@ -36,7 +36,7 @@ export async function syncVideosNow() {
  * "정리완료" — 유튜브 재생목록과 로컬 목록 양쪽에서 영상을 제거한다.
  */
 export async function deleteVideo(videoId) {
-  const res = await fetch(`${API_BASE_URL}/api/videos/${videoId}`, {
+  const res = await fetch(`${API_BASE_URL}api/videos/${videoId}`, {
     method: 'DELETE',
     credentials: 'include',
   });
@@ -48,7 +48,7 @@ export async function deleteVideo(videoId) {
  * 다시 넣는다.
  */
 export async function setVideoArchived(videoId, isArchived) {
-  const res = await fetch(`${API_BASE_URL}/api/videos/${videoId}/archive`, {
+  const res = await fetch(`${API_BASE_URL}api/videos/${videoId}/archive`, {
     method: 'PATCH',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
@@ -61,7 +61,7 @@ export async function setVideoArchived(videoId, isArchived) {
  * "나중에" — 저장 일자를 현재 시각으로 초기화해 방치 경고(D-Day)를 리셋한다.
  */
 export async function resetVideoDday(videoId) {
-  const res = await fetch(`${API_BASE_URL}/api/videos/${videoId}/reset-dday`, {
+  const res = await fetch(`${API_BASE_URL}api/videos/${videoId}/reset-dday`, {
     method: 'PATCH',
     credentials: 'include',
   });
@@ -73,7 +73,7 @@ export async function resetVideoDday(videoId) {
  * 일괄 등록한다. 링크별 성공/실패/유효하지 않음 결과를 함께 받는다.
  */
 export async function bulkImportVideos(text) {
-  const res = await fetch(`${API_BASE_URL}/api/videos/bulk-import`, {
+  const res = await fetch(`${API_BASE_URL}api/videos/bulk-import`, {
     method: 'POST',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
@@ -88,7 +88,7 @@ export async function bulkImportVideos(text) {
  * @returns {() => void} 구독 해제 함수
  */
 export function subscribeToSummaryUpdates(onUpdate) {
-  const source = new EventSource(`${API_BASE_URL}/api/videos/stream`, { withCredentials: true });
+  const source = new EventSource(`${API_BASE_URL}api/videos/stream`, { withCredentials: true });
 
   source.onmessage = (event) => {
     try {

@@ -4,7 +4,7 @@ import { API_BASE_URL } from './config';
  * 서버 헬스체크(GET /api/health)를 호출한다.
  */
 export async function fetchHealth() {
-  const res = await fetch(`${API_BASE_URL}/api/health`);
+  const res = await fetch(`${API_BASE_URL}api/health`);
   const body = await res.json().catch(() => ({}));
 
   if (!res.ok) {
