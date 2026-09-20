@@ -480,7 +480,7 @@ const VideoListPage = () => {
   const renderGate = (title, description, action) => (
     <div className="nwl-page video-list-page nwl-reveal-section" ref={rootRef}>
       <div className="nwl-grain" aria-hidden="true" />
-      <div className="video-list-page__inner video-list-page__inner--list">
+      <div className="video-list-page__inner video-list-page__inner--list video-list-page__inner--gate">
         <div className="video-list-page__empty">
           <p className="video-list-page__empty-title">{title}</p>
           <p className="video-list-page__empty-description">{description}</p>

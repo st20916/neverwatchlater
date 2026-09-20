@@ -97,7 +97,7 @@ const BulkImportPage = () => {
   const renderGate = (title, description, action) => (
     <section className="nwl-page bulk-import">
       <div className="nwl-grain" aria-hidden="true" />
-      <div className="bulk-import__inner">
+      <div className="bulk-import__inner bulk-import__inner--gate">
         <div className="bulk-import__empty">
           <p className="bulk-import__empty-title">{title}</p>
           <p className="bulk-import__empty-description">{description}</p>
