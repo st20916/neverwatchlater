@@ -21,7 +21,7 @@
      순회로 제목이 정확히 일치하는 재생목록을 찾는다.
    - `createPlaylist(accessToken, title, options)` — `POST /youtube/v3/playlists`.
 2. `server/src/store/userStore.js` — `googleId → { playlistId, playlistTitle, updatedAt }` 매핑을
-   `server/data/users.json` 파일에 저장한다(파일 기반 MVP 저장소, 아래 "저장소" 절 참고).
+   MongoDB `users` 컬렉션에 저장한다(아래 "저장소" 절 참고).
 3. `server/src/services/googleSession.service.js` — 세션의 Google 액세스 토큰이 만료되었거나
    곧 만료되면 `providers/google-oauth.js`의 `refreshAccessToken`으로 갱신한다.
 4. `server/src/services/playlist.service.js` — `ensureDedicatedPlaylist({ googleId, accessToken })`:
@@ -39,29 +39,29 @@
 | `POST` | `/api/playlists/setup` | 전용 재생목록을 확보한다(멱등). 응답: `{ playlistId, created }` |
 | `GET` | `/api/playlists/me` | 저장소에 기록된 현재 상태만 조회(YouTube 재조회 없음). 응답: `{ playlist: { playlistId, playlistTitle, updatedAt } | null }` |
 
-## 저장소 (MVP: 파일 기반)
+## 저장소 (MongoDB Atlas)
 
-- 위치: `server/data/users.json` (Git에는 커밋되지 않음, `.gitkeep`으로 폴더만 유지).
-- 구조:
+- 연결: `MONGODB_URI` (`server/src/config/env.js` → `server/src/config/mongo.js`).
+  MongoDB Atlas `mongodb+srv://...` 연결 문자열을 사용한다(로컬 Mongo 기본값 없음).
+- 컬렉션: `users`
+- 문서 구조:
   ```json
   {
-    "<googleId>": {
-      "playlistId": "PLxxxxxxxxxxxxxxxx",
-      "playlistTitle": "Neverwatchlater",
-      "updatedAt": "2026-09-14T00:00:00.000Z"
-    }
+    "_id": "<googleId>",
+    "playlistId": "PLxxxxxxxxxxxxxxxx",
+    "playlistTitle": "Neverwatchlater",
+    "updatedAt": "2026-09-14T00:00:00.000Z"
   }
   ```
 - 토큰 등 민감 정보는 저장하지 않는다(`docs/security.md` 5절: 사용자 데이터 최소화). 액세스/
   리프레시 토큰은 계속 `express-session` 메모리 세션에만 유지된다.
-- 동시 쓰기는 프로세스 내 write queue(프로미스 체인)로 직렬화하고, 임시 파일 작성 후
-  `rename`으로 원자적으로 반영한다.
+- 같은 `googleId`에 대한 쓰기는 프로세스 내 큐로 직렬화한다.
+- 기존 `server/data/users.json`이 있으면 `npm run migrate:json-to-mongo`로 이전할 수 있다.
 
 ### TODO(확정필요) — 운영 전 정리 필요
 
-- 파일 기반 저장소는 **단일 프로세스 전제**다. 서버를 여러 인스턴스로 스케일아웃하면 각
-  인스턴스가 별도 파일을 갖게 되어 데이터가 어긋난다. 운영 배포 전 SQLite(예:
-  `better-sqlite3`) 또는 팀에서 이미 쓰는 DB로 교체가 필요하다.
+- `express-session` 기본 MemoryStore는 다중 인스턴스에 부적합하다. 운영 배포 전 Redis 등
+  영속 세션 스토어로 교체가 필요하다.
 - `findPlaylistByTitle`은 매 설정 요청마다 저장소에 기록이 없을 때만 YouTube를 조회한다.
   사용자가 YouTube에서 직접 재생목록 이름을 바꾸거나 삭제해도 로컬 기록은 갱신되지 않는다.
   필요하면 주기적 재검증(예: `GET /api/playlists/me`에서 YouTube에 실존 여부 확인) 로직을

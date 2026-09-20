@@ -27,7 +27,7 @@ cd client && npm run lint && npm test
 | 헬스체크(통합) / 404 | [`server/src/app.test.js`](../server/src/app.test.js) | `GET /api/health` 200 응답, 정의되지 않은 라우트에 대한 404 응답 |
 | Google OAuth 로그인/콜백 | [`server/src/routes/auth.route.test.js`](../server/src/routes/auth.route.test.js) | `GET /api/auth/google`이 `accounts.google.com`으로 302 리다이렉트(+ `state` 포함)하는지, 비로그인 시 `GET /api/auth/me`가 401을 반환하는지, `code`/`state` 누락 시 `/oauth/error?reason=invalid_state`로, Google이 에러를 전달하면 `/oauth/error?reason=oauth_denied`로 리다이렉트하는지 |
 | YouTube API 연동 | [`server/src/providers/youtube.test.js`](../server/src/providers/youtube.test.js) | `fetch`를 모킹해 `findPlaylistByTitle`의 페이지네이션 순회/일치 항목 탐색/미일치 시 `null` 반환, `createPlaylist`의 요청 바디(`title`, `privacyStatus`) 및 응답 매핑, YouTube API 에러 응답 시 예외 처리 |
-| 파일 기반 사용자 저장소 | [`server/src/store/userStore.test.js`](../server/src/store/userStore.test.js) | 임시 파일 경로로 격리해 기록 없음(`null`) 조회, 저장 후 조회, 여러 사용자 독립 저장, 동시 쓰기 직렬화 |
+| MongoDB 사용자 저장소 | [`server/src/store/userStore.test.js`](../server/src/store/userStore.test.js) | `mongodb-memory-server`로 격리해 기록 없음(`null`) 조회, 저장 후 조회, 여러 사용자 독립 저장, 동시 쓰기 직렬화 |
 | 전용 재생목록 서비스 | [`server/src/services/playlist.service.test.js`](../server/src/services/playlist.service.test.js) | 가짜 store/provider를 주입해 "이미 저장된 기록 있음(YouTube 미호출)", "YouTube에 이미 존재(생성 안 함)", "둘 다 없음(신규 생성)" 3가지 분기 검증 |
 | 세션 토큰 갱신 헬퍼 | [`server/src/services/googleSession.service.test.js`](../server/src/services/googleSession.service.test.js) | 세션 없음 → 401, 만료 전 토큰은 그대로 반환, 만료 임박+refreshToken 없음 → 401 |
 | 재생목록 API 인증 가드 | [`server/src/routes/playlist.route.test.js`](../server/src/routes/playlist.route.test.js) | 비로그인 상태에서 `POST /api/playlists/setup`, `GET /api/playlists/me` 모두 401 |
@@ -139,8 +139,9 @@ Invoke-WebRequest -Uri "http://localhost:4000/api/auth/google/callback" -Maximum
 - OAuth 콜백의 **성공** 경로와 재생목록 **신규 생성/기존 재사용** 전체 플로우는 실제 Google
   계정과 브라우저 상호작용이 필요해 `node:test`로 자동화하지 못했습니다. 2.4절의 수동 절차로
   검증합니다.
-- 재생목록 매핑은 파일 기반 저장소(`server/data/users.json`)를 사용하므로, 서버를 다중
-  인스턴스로 운영하면 동기화 이슈가 있을 수 있습니다 (`docs/product-specs/playlist.md`
-  "TODO(확정필요)" 참고).
+- 재생목록/영상 데이터는 MongoDB Atlas(`users`, `videos` 컬렉션)에 저장한다.
+  `server/.env`의 `MONGODB_URI`(Atlas `mongodb+srv://...`)가 설정되어 있어야 서버가 기동된다.
+  세션은 여전히 MemoryStore라 다중 인스턴스 운영 시 별도 세션 스토어가 필요하다
+  (`docs/product-specs/playlist.md` "TODO(확정필요)" 참고).
 - `client/src/pages/OAuthSuccess.jsx`, `OAuthError.jsx`, `OAuthTest.css`,
   `client/src/api/authApi.js`는 테스트 전용 화면으로, 정식 UI가 만들어지면 삭제될 예정입니다.

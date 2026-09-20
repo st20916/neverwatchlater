@@ -1,32 +1,34 @@
 import assert from 'node:assert/strict';
-import fs from 'node:fs/promises';
-import os from 'node:os';
-import path from 'node:path';
 import { after, before, test } from 'node:test';
+
+import { MongoMemoryServer } from 'mongodb-memory-server';
+import { MongoClient } from 'mongodb';
 
 import { createVideoStore } from './videoStore.js';
 
-let tmpFile;
+let memoryServer;
+let client;
+let store;
 
 before(async () => {
-  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'videoStore-test-'));
-  tmpFile = path.join(tmpDir, 'videos.json');
+  memoryServer = await MongoMemoryServer.create();
+  client = new MongoClient(memoryServer.getUri());
+  await client.connect();
+  const collection = client.db('test').collection('videos');
+  store = createVideoStore({ getCollection: () => collection });
 });
 
 after(async () => {
-  await fs.rm(path.dirname(tmpFile), { recursive: true, force: true });
+  await client?.close();
+  await memoryServer?.stop();
 });
 
 test('기록이 없는 사용자를 조회하면 null을 반환한다', async () => {
-  const store = createVideoStore(tmpFile);
-
-  const record = await store.getUserVideoData('user-1');
-
+  const record = await store.getUserVideoData('user-missing');
   assert.equal(record, null);
 });
 
 test('setUserVideoData로 저장한 뒤 getUserVideoData로 조회할 수 있다', async () => {
-  const store = createVideoStore(tmpFile);
   const videos = [{ videoId: 'v1', title: '영상 1' }];
 
   await store.setUserVideoData('user-1', { lastSyncedAt: '2026-09-16T00:00:00.000Z', videos });
@@ -38,8 +40,6 @@ test('setUserVideoData로 저장한 뒤 getUserVideoData로 조회할 수 있다
 });
 
 test('여러 사용자의 기록을 독립적으로 저장한다', async () => {
-  const store = createVideoStore(tmpFile);
-
   await store.setUserVideoData('user-2', { lastSyncedAt: null, videos: [{ videoId: 'a' }] });
   await store.setUserVideoData('user-3', { lastSyncedAt: null, videos: [{ videoId: 'b' }] });
 
@@ -51,7 +51,6 @@ test('여러 사용자의 기록을 독립적으로 저장한다', async () => {
 });
 
 test('commitUserVideoData는 최신 상태를 읽어 계산한 뒤 저장한다', async () => {
-  const store = createVideoStore(tmpFile);
   await store.setUserVideoData('commit-user', {
     lastSyncedAt: null,
     videos: [{ videoId: 'v1', summaryStatus: 'pending' }],
@@ -68,7 +67,6 @@ test('commitUserVideoData는 최신 상태를 읽어 계산한 뒤 저장한다'
 });
 
 test('updateVideoFields는 지정한 영상 하나만 갱신하고 나머지는 그대로 둔다', async () => {
-  const store = createVideoStore(tmpFile);
   await store.setUserVideoData('update-user', {
     lastSyncedAt: null,
     videos: [
@@ -86,7 +84,6 @@ test('updateVideoFields는 지정한 영상 하나만 갱신하고 나머지는 
 });
 
 test('updateVideoFields는 존재하지 않는 영상이면 null을 반환하고 아무것도 바꾸지 않는다', async () => {
-  const store = createVideoStore(tmpFile);
   await store.setUserVideoData('missing-user', {
     lastSyncedAt: null,
     videos: [{ videoId: 'v1', title: '영상1' }],
@@ -98,7 +95,6 @@ test('updateVideoFields는 존재하지 않는 영상이면 null을 반환하고
 });
 
 test('removeVideo는 지정한 영상만 제거하고 나머지는 그대로 둔다', async () => {
-  const store = createVideoStore(tmpFile);
   await store.setUserVideoData('remove-user', {
     lastSyncedAt: null,
     videos: [
@@ -121,7 +117,6 @@ test('removeVideo는 지정한 영상만 제거하고 나머지는 그대로 둔
 });
 
 test('removeVideo는 존재하지 않는 영상이면 null을 반환하고 아무것도 바꾸지 않는다', async () => {
-  const store = createVideoStore(tmpFile);
   await store.setUserVideoData('remove-missing-user', {
     lastSyncedAt: null,
     videos: [{ videoId: 'v1', title: '영상1' }],
@@ -135,8 +130,6 @@ test('removeVideo는 존재하지 않는 영상이면 null을 반환하고 아�
 });
 
 test('동시에 여러 쓰기가 들어와도 모두 반영된다(직렬화)', async () => {
-  const store = createVideoStore(tmpFile);
-
   await Promise.all([
     store.setUserVideoData('concurrent-1', { lastSyncedAt: null, videos: [{ videoId: 'c1' }] }),
     store.setUserVideoData('concurrent-2', { lastSyncedAt: null, videos: [{ videoId: 'c2' }] }),

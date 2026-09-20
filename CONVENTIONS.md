@@ -26,7 +26,8 @@ project/
 │   └── .oxlintrc.json     # 린트 설정
 │
 ├── server/                 # Node.js + Express 백엔드
-│   ├── data/               # 파일 기반 저장소 데이터 (gitignore, .gitkeep으로 폴더만 유지)
+│   ├── data/               # (레거시) JSON 백업용. 런타임 저장소는 MongoDB. 마이그레이션:
+│   │                       #   npm run migrate:json-to-mongo
 │   └── src/
 │       ├── config/         # 환경변수 등 설정
 │       ├── routes/         # 라우터 (URL ↔ 컨트롤러 연결)
@@ -34,8 +35,8 @@ project/
 │       ├── middlewares/    # 공통 미들웨어 (에러 처리, 인증 등)
 │       ├── services/       # 비즈니스 로직 (예: services/playlist.service.js)
 │       ├── providers/      # 외부 API 연동 모듈 (예: providers/google-oauth.js, providers/youtube.js)
-│       ├── store/          # 데이터 저장소 접근 모듈 (예: store/userStore.js — 현재는 파일 기반,
-│       │                   #   추후 DB로 교체 시 이 계층만 바꾸도록 분리)
+│       ├── store/          # 데이터 저장소 접근 모듈 (예: store/userStore.js — MongoDB,
+│       │                   #   services는 store 구현을 알지 못하게 분리)
 │       ├── models/         # DB 모델/스키마 (실제 DB 도입 시 생성)
 │       ├── app.js          # express 앱 설정
 │       └── server.js       # 앱 실행 진입점

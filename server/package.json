@@ -9,7 +9,8 @@
     "start": "node src/server.js",
     "lint": "oxlint",
     "test": "node --test src/**/*.test.js",
-    "test:watch": "node --test --watch src/**/*.test.js"
+    "test:watch": "node --test --watch src/**/*.test.js",
+    "migrate:json-to-mongo": "node scripts/migrate-json-to-mongo.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
@@ -17,9 +18,11 @@
     "express": "^4.21.2",
     "express-session": "^1.19.0",
     "google-auth-library": "^11.0.2",
+    "mongodb": "^7.6.0",
     "morgan": "^1.10.0"
   },
   "devDependencies": {
+    "mongodb-memory-server": "^11.2.0",
     "oxlint": "^1.82.0"
   }
 }

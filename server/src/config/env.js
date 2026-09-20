@@ -4,6 +4,21 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+/**
+ * MongoDB URI 경로에서 DB 이름을 뽑는다. 경로가 비어 있으면 기본값을 쓴다.
+ * 예: mongodb+srv://user:pass@cluster.mongodb.net/neverwatchlater → neverwatchlater
+ */
+function resolveMongoDbName(uri, fallback = 'neverwatchlater') {
+  if (!uri) return fallback;
+  try {
+    const pathname = new URL(uri).pathname.replace(/^\//, '');
+    // 쿼리만 있는 경우 등 빈 경로면 기본 DB 이름을 쓴다.
+    return pathname.split('?')[0] || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 export const env = {
   port: Number(process.env.PORT) || 4000,
   nodeEnv: process.env.NODE_ENV || 'development',
@@ -24,6 +39,11 @@ export const env = {
     apiKey: process.env.GEMINI_API_KEY || '',
     model: process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite',
   },
+  mongodb: {
+    // MongoDB Atlas 연결 문자열. 로컬 기본값은 두지 않는다 (.env.example 참고).
+    uri: process.env.MONGODB_URI || '',
+    dbName: resolveMongoDbName(process.env.MONGODB_URI || ''),
+  },
 };
 
 export const isProduction = env.nodeEnv === 'production';
@@ -38,6 +58,8 @@ export function assertRequiredEnv() {
   if (!env.google.clientId) missing.push('GOOGLE_CLIENT_ID');
   if (!env.google.clientSecret) missing.push('GOOGLE_CLIENT_SECRET');
   if (!process.env.SESSION_SECRET) missing.push('SESSION_SECRET');
+  // MongoDB Atlas 연결 문자열은 개발/운영 모두 필수다(로컬 Mongo 기본값 없음).
+  if (!process.env.MONGODB_URI) missing.push('MONGODB_URI');
 
   if (missing.length === 0) return;
 
@@ -47,5 +69,5 @@ export function assertRequiredEnv() {
     throw new Error(message);
   }
 
-  console.warn(`⚠️  ${message} — Google 로그인 기능이 정상 동작하지 않을 수 있습니다.`);
+  console.warn(`⚠️  ${message} — Google 로그인 또는 MongoDB Atlas 연결이 정상 동작하지 않을 수 있습니다.`);
 }
